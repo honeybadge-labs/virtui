@@ -1,6 +1,6 @@
 {
   "name": "honeybadge/virtui",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "summary": "automatically control and record tui application sessions from the terminal ",
   "skills": {
     "virtui": {
