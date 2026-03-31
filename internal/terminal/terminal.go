@@ -1,0 +1,67 @@
+// Package terminal provides the core terminal abstraction backed by PTY + vt10x.
+package terminal
+
+import (
+	"crypto/sha256"
+	"fmt"
+	"strings"
+)
+
+// Screen represents a snapshot of the terminal screen.
+type Screen struct {
+	Text      string // Full screen text with newlines
+	Hash      string // SHA-256 hex of Text
+	CursorRow int
+	CursorCol int
+	Cols      int
+	Rows      int
+}
+
+// ComputeHash returns a SHA-256 hex of the given text.
+func ComputeHash(text string) string {
+	h := sha256.Sum256([]byte(text))
+	return fmt.Sprintf("%x", h)
+}
+
+// Terminal is the interface for interacting with a terminal session.
+type Terminal interface {
+	// Write sends bytes to the PTY stdin.
+	Write(p []byte) (int, error)
+	// Screen returns a snapshot of the terminal screen.
+	Screen() Screen
+	// Resize changes the terminal dimensions.
+	Resize(cols, rows int) error
+	// PID returns the process ID of the child process.
+	PID() int
+	// Running returns whether the child process is still alive.
+	Running() bool
+	// ExitCode returns the exit code of the child process (-1 if still running).
+	ExitCode() int
+	// Subscribe returns a channel that receives a notification on screen changes,
+	// and a cancel function to unsubscribe.
+	Subscribe() (updates <-chan struct{}, cancel func())
+	// Close terminates the terminal and cleans up resources.
+	Close() error
+}
+
+// extractText reads the vt10x terminal state into a screen text string.
+// It trims trailing whitespace from each row.
+func extractText(cols, rows int, cellAt func(col, row int) (rune, bool)) string {
+	var sb strings.Builder
+	for row := 0; row < rows; row++ {
+		var line strings.Builder
+		for col := 0; col < cols; col++ {
+			ch, ok := cellAt(col, row)
+			if !ok || ch == 0 {
+				line.WriteRune(' ')
+			} else {
+				line.WriteRune(ch)
+			}
+		}
+		sb.WriteString(strings.TrimRight(line.String(), " "))
+		if row < rows-1 {
+			sb.WriteRune('\n')
+		}
+	}
+	return sb.String()
+}
