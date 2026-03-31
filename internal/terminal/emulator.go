@@ -3,6 +3,7 @@ package terminal
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -98,17 +99,29 @@ func NewEmulator(opts EmulatorOpts) (*Emulator, error) {
 
 // pump reads from PTY and feeds data to vt10x.
 func (e *Emulator) pump() {
-	br := bufio.NewReader(e.ptyF)
+	var r io.Reader = e.ptyF
+	if e.recorder != nil {
+		// Tee PTY output through the recorder so it captures raw bytes.
+		r = io.TeeReader(e.ptyF, &recorderOutputWriter{rec: e.recorder})
+	}
+	br := bufio.NewReader(r)
 	for {
 		err := e.vt.Parse(br)
 		if err != nil {
 			return
 		}
-		// Record output if recording
-		// Note: vt10x.Parse reads and processes internally.
-		// We notify subscribers after each parse cycle.
 		e.notifySubscribers()
 	}
+}
+
+// recorderOutputWriter is an io.Writer that records output events.
+type recorderOutputWriter struct {
+	rec *Recorder
+}
+
+func (w *recorderOutputWriter) Write(p []byte) (int, error) {
+	w.rec.Output(p)
+	return len(p), nil
 }
 
 // waitExit waits for the child process to exit and records the exit code.
