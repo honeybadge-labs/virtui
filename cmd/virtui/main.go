@@ -151,7 +151,14 @@ func main() {
 		cli.Socket = filepath.Join(home, cli.Socket[2:])
 	}
 	err := ctx.Run(&cli)
-	ctx.FatalIfErrorf(err)
+	if err != nil {
+		if cli.JSON {
+			outputError(err)
+		} else {
+			ctx.FatalIfErrorf(err)
+		}
+		os.Exit(1)
+	}
 }
 
 func (cmd *RunCmd) Run(cli *CLI) error {
