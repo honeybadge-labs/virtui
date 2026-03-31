@@ -23,7 +23,9 @@ npx skills add honeybadge-labs/virtui
 
 Then prompt your agent:
 
-> Use /virtui to create a recording of you using the Claude TUI to calculate 2+2
+> Use /virtui to create a recording of you opening vim, saving a file named hello.txt and exiting.
+
+Exiting `vim` has long been a rite of passage, and Claude now surpasses many human engineers.
 
 ### Use Cases
 
@@ -101,10 +103,10 @@ change detection without transferring screen contents.
 
 ### Global Flags
 
-| Flag | Short | Env | Default | Description |
-|------|-------|-----|---------|-------------|
-| `--json` | `-j` | | `false` | Output in JSON format |
-| `--socket` | | `VIRTUI_SOCKET` | `~/.virtui/daemon.sock` | Daemon socket path |
+| Flag       | Short | Env             | Default                 | Description           |
+| ---------- | ----- | --------------- | ----------------------- | --------------------- |
+| `--json`   | `-j`  |                 | `false`                 | Output in JSON format |
+| `--socket` |       | `VIRTUI_SOCKET` | `~/.virtui/daemon.sock` | Daemon socket path    |
 
 ---
 
@@ -117,8 +119,8 @@ virtui daemon start                # background (detached)
 virtui daemon start --foreground   # foreground (blocks)
 ```
 
-| Flag | Default | Description |
-|------|---------|-------------|
+| Flag           | Default | Description                                |
+| -------------- | ------- | ------------------------------------------ |
 | `--foreground` | `false` | Run in the foreground instead of detaching |
 
 ### `virtui daemon stop`
@@ -155,16 +157,17 @@ virtui run --record --record-path ./demo.cast bash
 virtui run -e TERM=dumb -e FOO=bar bash
 ```
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--cols` | `80` | Terminal columns |
-| `--rows` | `24` | Terminal rows |
-| `-e`, `--env` | | Environment variables (`KEY=VALUE`), repeatable |
-| `--dir` | | Working directory for the child process |
-| `--record` | `false` | Record session in asciicast v2 format |
-| `--record-path` | auto | Custom recording path (default: `~/.virtui/recordings/<id>.cast`) |
+| Flag            | Default | Description                                                       |
+| --------------- | ------- | ----------------------------------------------------------------- |
+| `--cols`        | `80`    | Terminal columns                                                  |
+| `--rows`        | `24`    | Terminal rows                                                     |
+| `-e`, `--env`   |         | Environment variables (`KEY=VALUE`), repeatable                   |
+| `--dir`         |         | Working directory for the child process                           |
+| `--record`      | `false` | Record session in asciicast v2 format                             |
+| `--record-path` | auto    | Custom recording path (default: `~/.virtui/recordings/<id>.cast`) |
 
 **Output (JSON):**
+
 ```json
 {
   "session_id": "a1b2c3d4",
@@ -200,20 +203,21 @@ virtui exec a1b2c3d4 "node --version" --wait-regex "v\d+\.\d+"
 virtui exec a1b2c3d4 "npm install" --wait "added" --timeout 60000
 ```
 
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `session` | yes | Session ID |
-| `input` | yes | Text to type (Enter is appended automatically) |
+| Argument  | Required | Description                                    |
+| --------- | -------- | ---------------------------------------------- |
+| `session` | yes      | Session ID                                     |
+| `input`   | yes      | Text to type (Enter is appended automatically) |
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--wait` | | Wait for this text to appear on screen |
+| Flag            | Default | Description                                        |
+| --------------- | ------- | -------------------------------------------------- |
+| `--wait`        |         | Wait for this text to appear on screen             |
 | `--wait-stable` | `false` | Wait for screen to stop changing (500ms stability) |
-| `--wait-gone` | | Wait for this text to disappear from screen |
-| `--wait-regex` | | Wait for a regex pattern to match on screen |
-| `--timeout` | `30000` | Timeout in milliseconds |
+| `--wait-gone`   |         | Wait for this text to disappear from screen        |
+| `--wait-regex`  |         | Wait for a regex pattern to match on screen        |
+| `--timeout`     | `30000` | Timeout in milliseconds                            |
 
 **Output (JSON):**
+
 ```json
 {
   "screen_text": "$ ls -la\ntotal 42\n...",
@@ -235,11 +239,12 @@ virtui screenshot a1b2c3d4          # plain text to stdout
 virtui --json screenshot a1b2c3d4   # structured JSON with hash
 ```
 
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `session` | yes | Session ID |
+| Argument  | Required | Description |
+| --------- | -------- | ----------- |
+| `session` | yes      | Session ID  |
 
 **Output (JSON):**
+
 ```json
 {
   "screen_text": "$ echo hello\nhello\n$",
@@ -264,14 +269,14 @@ virtui press a1b2c3d4 Ctrl+C
 virtui press a1b2c3d4 Escape q    # press Escape then q
 ```
 
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `session` | yes | Session ID |
-| `keys` | yes | One or more key names (see [Key Names](#key-names)) |
+| Argument  | Required | Description                                         |
+| --------- | -------- | --------------------------------------------------- |
+| `session` | yes      | Session ID                                          |
+| `keys`    | yes      | One or more key names (see [Key Names](#key-names)) |
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--repeat` | `1` | Number of times to repeat the key sequence |
+| Flag       | Default | Description                                |
+| ---------- | ------- | ------------------------------------------ |
+| `--repeat` | `1`     | Number of times to repeat the key sequence |
 
 ---
 
@@ -284,10 +289,10 @@ search fields, or when you need to type without submitting.
 virtui type a1b2c3d4 "hello world"
 ```
 
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `session` | yes | Session ID |
-| `text` | yes | Text to type (Enter is NOT appended) |
+| Argument  | Required | Description                          |
+| --------- | -------- | ------------------------------------ |
+| `session` | yes      | Session ID                           |
+| `text`    | yes      | Text to type (Enter is NOT appended) |
 
 ---
 
@@ -304,19 +309,20 @@ virtui wait a1b2c3d4 --regex "v\d+\.\d+"
 virtui wait a1b2c3d4 --text "Done" --timeout 60000
 ```
 
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `session` | yes | Session ID |
+| Argument  | Required | Description |
+| --------- | -------- | ----------- |
+| `session` | yes      | Session ID  |
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--text` | | Wait for this text to appear |
-| `--stable` | `false` | Wait for screen to stop changing |
-| `--gone` | | Wait for this text to disappear |
-| `--regex` | | Wait for a regex pattern to match |
-| `--timeout` | `30000` | Timeout in milliseconds |
+| Flag        | Default | Description                       |
+| ----------- | ------- | --------------------------------- |
+| `--text`    |         | Wait for this text to appear      |
+| `--stable`  | `false` | Wait for screen to stop changing  |
+| `--gone`    |         | Wait for this text to disappear   |
+| `--regex`   |         | Wait for a regex pattern to match |
+| `--timeout` | `30000` | Timeout in milliseconds           |
 
 **Output (JSON):**
+
 ```json
 {
   "screen_text": "...",
@@ -345,10 +351,10 @@ Resize the terminal dimensions of a running session.
 virtui resize a1b2c3d4 --cols 120 --rows 40
 ```
 
-| Flag | Required | Description |
-|------|----------|-------------|
-| `--cols` | yes | New column count |
-| `--rows` | yes | New row count |
+| Flag     | Required | Description      |
+| -------- | -------- | ---------------- |
+| `--cols` | yes      | New column count |
+| `--rows` | yes      | New row count    |
 
 ---
 
@@ -373,18 +379,21 @@ virtui --json sessions show a1b2c3d4
 ```
 
 **Output (JSON):**
+
 ```json
-[{
-  "session_id": "a1b2c3d4",
-  "pid": 1234,
-  "command": ["bash"],
-  "cols": 80,
-  "rows": 24,
-  "running": true,
-  "exit_code": 0,
-  "created_at": 1711900000,
-  "recording_path": ""
-}]
+[
+  {
+    "session_id": "a1b2c3d4",
+    "pid": 1234,
+    "command": ["bash"],
+    "cols": 80,
+    "rows": 24,
+    "running": true,
+    "exit_code": 0,
+    "created_at": 1711900000,
+    "recording_path": ""
+  }
+]
 ```
 
 ---
@@ -402,13 +411,13 @@ virtui pipeline a1b2c3d4 --file steps.json
 echo '{"steps":[...]}' | virtui pipeline a1b2c3d4
 ```
 
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `session` | yes | Session ID |
+| Argument  | Required | Description |
+| --------- | -------- | ----------- |
+| `session` | yes      | Session ID  |
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--file` | | Path to JSON file with steps (reads stdin if omitted) |
+| Flag     | Default | Description                                           |
+| -------- | ------- | ----------------------------------------------------- |
+| `--file` |         | Path to JSON file with steps (reads stdin if omitted) |
 
 **Pipeline JSON format:**
 
@@ -456,13 +465,13 @@ echo '{"steps":[...]}' | virtui pipeline a1b2c3d4
 
 The `press` command accepts the following key names:
 
-| Category | Keys |
-|----------|------|
-| Standard | `Enter`, `Tab`, `Backspace`, `Escape`, `Space`, `Delete` |
-| Arrows | `ArrowUp` / `Up`, `ArrowDown` / `Down`, `ArrowRight` / `Right`, `ArrowLeft` / `Left` |
-| Navigation | `Home`, `End`, `PageUp`, `PageDown`, `Insert` |
-| Function | `F1` through `F12` |
-| Ctrl | `Ctrl+A` through `Ctrl+Z`, `Ctrl+[`, `Ctrl+]`, `Ctrl+\` |
+| Category   | Keys                                                                                 |
+| ---------- | ------------------------------------------------------------------------------------ |
+| Standard   | `Enter`, `Tab`, `Backspace`, `Escape`, `Space`, `Delete`                             |
+| Arrows     | `ArrowUp` / `Up`, `ArrowDown` / `Down`, `ArrowRight` / `Right`, `ArrowLeft` / `Left` |
+| Navigation | `Home`, `End`, `PageUp`, `PageDown`, `Insert`                                        |
+| Function   | `F1` through `F12`                                                                   |
+| Ctrl       | `Ctrl+A` through `Ctrl+Z`, `Ctrl+[`, `Ctrl+]`, `Ctrl+\`                              |
 
 Single characters (e.g., `a`, `1`, `/`) are also accepted and sent as-is.
 
@@ -555,26 +564,26 @@ func main() {
 
 ### SDK API
 
-| Method | Description |
-|--------|-------------|
-| `Connect(socketPath)` | Connect to the daemon |
-| `Run(ctx, command, ...RunOpts)` | Start a session |
+| Method                                       | Description                  |
+| -------------------------------------------- | ---------------------------- |
+| `Connect(socketPath)`                        | Connect to the daemon        |
+| `Run(ctx, command, ...RunOpts)`              | Start a session              |
 | `Exec(ctx, sessionID, input, ...WaitOption)` | Type + Enter + optional wait |
-| `Screenshot(ctx, sessionID)` | Capture screen |
-| `Press(ctx, sessionID, keys...)` | Send key presses |
-| `Type(ctx, sessionID, text)` | Type text (no Enter) |
-| `Kill(ctx, sessionID)` | Terminate session |
-| `Resize(ctx, sessionID, cols, rows)` | Resize terminal |
+| `Screenshot(ctx, sessionID)`                 | Capture screen               |
+| `Press(ctx, sessionID, keys...)`             | Send key presses             |
+| `Type(ctx, sessionID, text)`                 | Type text (no Enter)         |
+| `Kill(ctx, sessionID)`                       | Terminate session            |
+| `Resize(ctx, sessionID, cols, rows)`         | Resize terminal              |
 
 ### Wait Options
 
-| Function | Description |
-|----------|-------------|
-| `WaitText(text)` | Wait for text to appear |
-| `WaitStable()` | Wait for screen to stabilize |
-| `WaitGone(text)` | Wait for text to disappear |
-| `WaitRegex(pattern)` | Wait for regex match |
-| `WithTimeout(ms)` | Set wait timeout in ms |
+| Function             | Description                  |
+| -------------------- | ---------------------------- |
+| `WaitText(text)`     | Wait for text to appear      |
+| `WaitStable()`       | Wait for screen to stabilize |
+| `WaitGone(text)`     | Wait for text to disappear   |
+| `WaitRegex(pattern)` | Wait for regex match         |
+| `WithTimeout(ms)`    | Set wait timeout in ms       |
 
 ---
 
@@ -582,13 +591,13 @@ func main() {
 
 All errors returned by the daemon include structured information:
 
-| Field | Description |
-|-------|-------------|
-| `code` | Machine-readable error code (e.g., `SESSION_NOT_FOUND`, `TIMEOUT`) |
-| `category` | Error category (`SESSION`, `TERMINAL`, `TIMEOUT`, `VALIDATION`, `DAEMON`) |
-| `message` | Human-readable description |
-| `retryable` | Whether the operation can be retried |
-| `suggestion` | Suggested action to resolve the error |
+| Field        | Description                                                               |
+| ------------ | ------------------------------------------------------------------------- |
+| `code`       | Machine-readable error code (e.g., `SESSION_NOT_FOUND`, `TIMEOUT`)        |
+| `category`   | Error category (`SESSION`, `TERMINAL`, `TIMEOUT`, `VALIDATION`, `DAEMON`) |
+| `message`    | Human-readable description                                                |
+| `retryable`  | Whether the operation can be retried                                      |
+| `suggestion` | Suggested action to resolve the error                                     |
 
 ---
 
