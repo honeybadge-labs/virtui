@@ -25,6 +25,11 @@ Then prompt your agent:
 
 > Use /virtui to create a recording of you using the Claude TUI to calculate 2+2
 
+### Use Cases
+
+- **Proof of work** — Have agents showcase the feature they built or bug they fixed, and submit recordings alongside their PRs for easy reviews.
+- **Tight feedback loops** — Tell agents to USE the TUI to make sure the UI works properly.
+
 ### Install
 
 **Homebrew (macOS & Linux):**
