@@ -138,8 +138,8 @@ func outputPipeline(resp *virtuipb.PipelineResponse, jsonMode bool) {
 	if jsonMode {
 		b, err := protojson.Marshal(resp)
 		if err == nil {
-			os.Stdout.Write(b)
-			os.Stdout.Write([]byte("\n"))
+			_, _ = os.Stdout.Write(b)
+			_, _ = os.Stdout.Write([]byte("\n"))
 		} else {
 			outputJSON(resp)
 		}
