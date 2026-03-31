@@ -130,7 +130,7 @@ virtui press <session_id> Escape q      # multiple keys in sequence
 virtui type <session_id> "search query"
 ```
 
-See `references/keys-and-errors.md` for the full list of available key names and error codes.
+See [references/keys-and-errors.md](references/keys-and-errors.md) for the full list of available key names and error codes.
 
 ### 5. Wait for Conditions
 
@@ -212,4 +212,4 @@ Recording stops when the session is killed or the process exits.
 - Errors include `code`, `category`, `message`, `retryable`, `suggestion` — check `retryable` before retrying.
 - When done with all automation, run `virtui daemon stop`.
 
-See `references/keys-and-errors.md` for error codes and key names.
+See [references/keys-and-errors.md](references/keys-and-errors.md) for error codes and key names.
