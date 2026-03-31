@@ -9,6 +9,18 @@ drive terminal applications via a gRPC API over Unix domain sockets.
 
 ## Getting Started
 
+### Install Skill
+
+Add the virtui skill to your AI agent:
+
+```bash
+npx tessl i honeybadge/virtui
+```
+
+```bash
+npx skills add honeybadge-labs/virtui
+```
+
 ### Install
 
 **Homebrew (macOS & Linux):**
