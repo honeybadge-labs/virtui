@@ -61,6 +61,7 @@ This returns a `session_id` you'll use for all subsequent commands. Common optio
 | `--dir` | cwd | Working directory |
 | `-e KEY=VAL` | | Environment variables (repeatable) |
 | `--record` | off | Record session as asciicast v2 |
+| `--record-path` | auto | Custom recording path |
 
 Example:
 ```bash
@@ -78,16 +79,22 @@ for a screen condition before returning.
 > as separate steps (or use a `pipeline`) to guarantee Enter is sent. See the
 > [Pipeline section](#pipeline-batch-operations) for a concrete example.
 
+> **Wait-condition caveat:** Wait conditions check the screen immediately after input is sent.
+> If the target text already appears on screen (e.g., in the typed command itself), the wait
+> can resolve in 0 ms — before the command's actual output appears. For reliable results, use
+> a `pipeline` with separate `type` → `press Enter` → `wait` steps, or follow `exec` with a
+> standalone `wait` command.
+
 ```bash
 virtui --json exec <session_id> "<input>" [wait flags]
 ```
 
-**Wait strategies** (use exactly one, or none for fire-and-forget):
+**Wait strategies** (use exactly one, or none to return immediately with current screen state):
 
 | Flag | When to use |
 |------|------------|
 | `--wait "text"` | Wait for specific text to appear on screen |
-| `--wait-stable` | Wait for screen to stop changing (500ms of no updates) |
+| `--wait-stable` | Wait for screen to stop changing (500 ms of no updates — does **not** guarantee the process finished) |
 | `--wait-gone "text"` | Wait for text to disappear (e.g., a loading spinner) |
 | `--wait-regex "pattern"` | Wait for a regex match on screen |
 | `--timeout <ms>` | Override default 30s timeout (use with any wait flag) |
@@ -97,7 +104,7 @@ Examples:
 # Run a command and wait for its output
 virtui --json exec $SID "echo hello" --wait "hello"
 
-# Run a build and wait for it to finish
+# Run a build and wait for screen to settle (500ms of no changes)
 virtui --json exec $SID "make build" --wait-stable --timeout 60000
 
 # Wait for a loading indicator to disappear
@@ -154,7 +161,16 @@ virtui kill <session_id>
 List active sessions:
 ```bash
 virtui --json sessions show
-# → {"sessions":[{"session_id":"...","pid":1234,"command":["bash"],...}]}
+# → {"sessions":[{"session_id":"a1b2c3d4","pid":1234,"command":["bash"],"cols":80,"rows":24,"running":true,"exit_code":-1,"created_at":"1711900000","recording_path":""}]}
+```
+
+### 7. Resize a Session
+
+Resize the terminal dimensions of a running session. Both `--cols` and `--rows` are required
+(unlike `run`, there are no defaults):
+
+```bash
+virtui resize <session_id> --cols 120 --rows 40
 ```
 
 ## Pipeline (Batch Operations)
@@ -179,6 +195,14 @@ echo '{"steps":[
 This is equivalent to `virtui exec $SID "echo hello world" --wait "hello world"` but
 guarantees Enter is actually sent regardless of how the shell tool handles newlines.
 
+### Pipeline from file
+
+Instead of piping JSON via stdin, you can pass a file containing the steps:
+
+```bash
+virtui --json pipeline <session_id> --file steps.json
+```
+
 ### General pipeline example
 
 ```bash
@@ -192,6 +216,31 @@ echo '{"steps":[
 
 Step types: `exec`, `press`, `type`, `wait`, `screenshot`, `sleep`.
 
+### Pipeline output format
+
+The pipeline returns a JSON object with a `results` array. Each entry contains the step
+outcome **and** a `screenshot` of the screen state at that point:
+
+```json
+{
+  "results": [
+    {
+      "step_index": 0,
+      "success": true,
+      "error_message": "",
+      "screenshot": {
+        "screen_text": "...",
+        "screen_hash": "...",
+        "cursor_row": 4,
+        "cursor_col": 10,
+        "cols": 80,
+        "rows": 24
+      }
+    }
+  ]
+}
+```
+
 ## Recording Sessions
 
 Record sessions as asciicast v2 (playable with `asciinema play`):
@@ -204,14 +253,31 @@ virtui --json run --record --record-path ./demo.cast bash
 
 Recording stops when the session is killed or the process exits.
 
+> **Note:** `--record-path` requires `--record` to be set. Using `--record-path` alone will not enable recording.
+
 ## Important Patterns
 
-- Always pass `--json` (or `-j`) for machine-readable output with `session_id`, `screen_text`, `screen_hash`, etc.
+- Always pass `--json` (or `-j`) for machine-readable output with `session_id`, `screen_text`, `screen_hash`, etc. (Note: `daemon start` and `daemon stop` ignore `--json` and always print plain text.)
 - JSON output uses proto3 JSON encoding: `int64` fields (`elapsed_ms`, `created_at`) are serialized as strings.
 - Use `screen_hash` (SHA-256) for cheap change detection without comparing full screen text.
 - The default wait timeout is 30s. For long-running ops, increase it: `--timeout 120000`.
 - If a wait times out, take a `screenshot` to see current state and decide how to proceed.
 - Errors include `code`, `category`, `message`, `retryable`, `suggestion` — check `retryable` before retrying.
-- When done with all automation, run `virtui daemon stop`.
+- **`daemon stop` is currently a no-op.** It prints "daemon stopped" but does not actually terminate the daemon process. To stop the daemon, run `pkill -f 'virtui.*daemon.*foreground'` or kill the PID printed at startup.
 
 See [references/keys-and-errors.md](references/keys-and-errors.md) for error codes and key names.
+
+## JSON Output Fields Reference
+
+| Command | Key Fields |
+|---------|------------|
+| `run` | `session_id`, `pid`, `recording_path` |
+| `exec` | `screen_text`, `screen_hash`, `cursor_row`, `cursor_col`, `elapsed_ms` |
+| `screenshot` | `screen_text`, `screen_hash`, `cursor_row`, `cursor_col`, `cols`, `rows` |
+| `press` | `screen_text`, `screen_hash` |
+| `type` | `screen_text`, `screen_hash` |
+| `wait` | `screen_text`, `screen_hash`, `elapsed_ms` |
+| `kill` | `ok` |
+| `resize` | `ok` |
+| `pipeline` | `results[]`: `step_index`, `success`, `error_message`, `screenshot` (see [Pipeline output format](#pipeline-output-format)) |
+| `sessions` | `sessions[]`: `session_id`, `pid`, `command`, `cols`, `rows`, `running`, `exit_code`, `created_at`, `recording_path` |

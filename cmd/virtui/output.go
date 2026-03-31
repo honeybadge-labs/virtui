@@ -7,6 +7,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	verrors "github.com/honeybadge-labs/virtui/internal/errors"
 	virtuipb "github.com/honeybadge-labs/virtui/proto/virtui/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -114,5 +115,17 @@ func outputPipeline(resp *virtuipb.PipelineResponse, jsonMode bool) {
 		} else {
 			fmt.Printf("step %d: error: %s\n", r.StepIndex, r.ErrorMessage)
 		}
+	}
+}
+
+func outputError(err error) {
+	ve := verrors.FromError(err)
+	if ve != nil {
+		outputProtoJSON(ve.ToProto())
+	} else {
+		outputJSON(map[string]any{
+			"code":    "UNKNOWN",
+			"message": err.Error(),
+		})
 	}
 }

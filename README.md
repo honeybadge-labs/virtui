@@ -62,12 +62,12 @@ virtui screenshot a1b2c3d4
 
 # 5. Clean up
 virtui kill a1b2c3d4
-virtui daemon stop
+pkill -f 'virtui.*daemon.*foreground'   # daemon stop is currently a no-op
 ```
 
 ## JSON Mode
 
-All commands support `--json` (`-j`) for machine-readable output:
+Most commands support `--json` (`-j`) for machine-readable output (exceptions: `daemon start` and `daemon stop` always print plain text):
 
 ```bash
 virtui --json run bash
@@ -124,7 +124,9 @@ virtui daemon start --foreground   # foreground (blocks)
 
 ### `virtui daemon stop`
 
-Stop the running daemon.
+> **Known issue:** `daemon stop` currently prints "daemon stopped" but does **not** actually
+> terminate the daemon process. To stop the daemon, run
+> `pkill -f 'virtui.*daemon.*foreground'` or kill the PID printed by `daemon start`.
 
 ```bash
 virtui daemon stop
@@ -182,6 +184,12 @@ virtui run -e TERM=dumb -e FOO=bar bash
 The primary command for AI interaction. Types the input, presses Enter, and optionally
 waits for a screen condition before returning.
 
+> **Caveat:** Wait conditions check the screen immediately after input is sent. If the
+> target text already appears (e.g., inside the typed command itself), the wait can resolve
+> in 0 ms — before the command's actual output appears. For reliable results use a
+> [pipeline](#virtui-pipeline-session) with separate `type` → `press Enter` → `wait` steps,
+> or follow `exec` with a standalone `wait` command.
+
 ```bash
 # Type + Enter (fire and forget)
 virtui exec a1b2c3d4 "ls -la"
@@ -189,7 +197,7 @@ virtui exec a1b2c3d4 "ls -la"
 # Type + Enter + wait for text to appear
 virtui exec a1b2c3d4 "npm install" --wait "added"
 
-# Type + Enter + wait for screen to stabilize (no changes for 500ms)
+# Type + Enter + wait for screen to settle (500ms of no changes — does NOT guarantee the process finished)
 virtui exec a1b2c3d4 "make build" --wait-stable
 
 # Type + Enter + wait for text to disappear
@@ -210,7 +218,7 @@ virtui exec a1b2c3d4 "npm install" --wait "added" --timeout 60000
 | Flag            | Default | Description                                        |
 | --------------- | ------- | -------------------------------------------------- |
 | `--wait`        |         | Wait for this text to appear on screen             |
-| `--wait-stable` | `false` | Wait for screen to stop changing (500ms stability) |
+| `--wait-stable` | `false` | Wait for 500 ms of no screen changes (does **not** guarantee process finished) |
 | `--wait-gone`   |         | Wait for this text to disappear from screen        |
 | `--wait-regex`  |         | Wait for a regex pattern to match on screen        |
 | `--timeout`     | `30000` | Timeout in milliseconds                            |
@@ -315,7 +323,7 @@ virtui wait a1b2c3d4 --text "Done" --timeout 60000
 | Flag        | Default | Description                       |
 | ----------- | ------- | --------------------------------- |
 | `--text`    |         | Wait for this text to appear      |
-| `--stable`  | `false` | Wait for screen to stop changing  |
+| `--stable`  | `false` | Wait for 500 ms of no screen changes (not process completion) |
 | `--gone`    |         | Wait for this text to disappear   |
 | `--regex`   |         | Wait for a regex pattern to match |
 | `--timeout` | `30000` | Timeout in milliseconds           |
@@ -590,7 +598,19 @@ func main() {
 
 ## Structured Errors
 
-All errors returned by the daemon include structured information:
+All errors returned by the daemon include structured information. When `--json` is set,
+errors are output as JSON to stdout:
+
+```json
+{
+  "code": "SESSION_NOT_FOUND",
+  "category": "ERROR_CATEGORY_SESSION",
+  "message": "session \"abc\" not found",
+  "retryable": false,
+  "suggestion": "Check the session ID with 'virtui sessions'.",
+  "context": {"session_id": "abc"}
+}
+```
 
 | Field        | Description                                                               |
 | ------------ | ------------------------------------------------------------------------- |
@@ -599,6 +619,7 @@ All errors returned by the daemon include structured information:
 | `message`    | Human-readable description                                                |
 | `retryable`  | Whether the operation can be retried                                      |
 | `suggestion` | Suggested action to resolve the error                                     |
+| `context`    | Additional key-value context (e.g., `session_id`)                         |
 
 ---
 
