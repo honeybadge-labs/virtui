@@ -154,6 +154,7 @@ virtui kill <session_id>
 List active sessions:
 ```bash
 virtui --json sessions show
+# → {"sessions":[{"session_id":"...","pid":1234,"command":["bash"],...}]}
 ```
 
 ## Pipeline (Batch Operations)
@@ -206,6 +207,7 @@ Recording stops when the session is killed or the process exits.
 ## Important Patterns
 
 - Always pass `--json` (or `-j`) for machine-readable output with `session_id`, `screen_text`, `screen_hash`, etc.
+- JSON output uses proto3 JSON encoding: `int64` fields (`elapsed_ms`, `created_at`) are serialized as strings.
 - Use `screen_hash` (SHA-256) for cheap change detection without comparing full screen text.
 - The default wait timeout is 30s. For long-running ops, increase it: `--timeout 120000`.
 - If a wait times out, take a `screenshot` to see current state and decide how to proceed.

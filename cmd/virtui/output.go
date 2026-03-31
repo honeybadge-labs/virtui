@@ -9,6 +9,7 @@ import (
 
 	virtuipb "github.com/honeybadge-labs/virtui/proto/virtui/v1"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 func outputJSON(v any) {
@@ -17,13 +18,18 @@ func outputJSON(v any) {
 	_ = enc.Encode(v)
 }
 
+func outputProtoJSON(msg proto.Message) {
+	b, err := protojson.MarshalOptions{Indent: "  ", UseProtoNames: true, EmitUnpopulated: true}.Marshal(msg)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error marshaling proto: %v\n", err)
+		return
+	}
+	fmt.Println(string(b))
+}
+
 func outputRun(resp *virtuipb.RunResponse, jsonMode bool) {
 	if jsonMode {
-		outputJSON(map[string]any{
-			"session_id":     resp.SessionId,
-			"pid":            resp.Pid,
-			"recording_path": resp.RecordingPath,
-		})
+		outputProtoJSON(resp)
 		return
 	}
 	fmt.Printf("session_id: %s\n", resp.SessionId)
@@ -35,13 +41,7 @@ func outputRun(resp *virtuipb.RunResponse, jsonMode bool) {
 
 func outputExec(resp *virtuipb.ExecResponse, jsonMode bool) {
 	if jsonMode {
-		outputJSON(map[string]any{
-			"screen_text": resp.ScreenText,
-			"screen_hash": resp.ScreenHash,
-			"cursor_row":  resp.CursorRow,
-			"cursor_col":  resp.CursorCol,
-			"elapsed_ms":  resp.ElapsedMs,
-		})
+		outputProtoJSON(resp)
 		return
 	}
 	fmt.Print(resp.ScreenText)
@@ -50,14 +50,7 @@ func outputExec(resp *virtuipb.ExecResponse, jsonMode bool) {
 
 func outputScreenshot(resp *virtuipb.ScreenshotResponse, jsonMode bool) {
 	if jsonMode {
-		outputJSON(map[string]any{
-			"screen_text": resp.ScreenText,
-			"screen_hash": resp.ScreenHash,
-			"cursor_row":  resp.CursorRow,
-			"cursor_col":  resp.CursorCol,
-			"cols":        resp.Cols,
-			"rows":        resp.Rows,
-		})
+		outputProtoJSON(resp)
 		return
 	}
 	fmt.Print(resp.ScreenText)
@@ -66,10 +59,7 @@ func outputScreenshot(resp *virtuipb.ScreenshotResponse, jsonMode bool) {
 
 func outputPress(resp *virtuipb.PressResponse, jsonMode bool) {
 	if jsonMode {
-		outputJSON(map[string]any{
-			"screen_text": resp.ScreenText,
-			"screen_hash": resp.ScreenHash,
-		})
+		outputProtoJSON(resp)
 		return
 	}
 	// Silent in text mode
@@ -77,10 +67,7 @@ func outputPress(resp *virtuipb.PressResponse, jsonMode bool) {
 
 func outputType(resp *virtuipb.TypeResponse, jsonMode bool) {
 	if jsonMode {
-		outputJSON(map[string]any{
-			"screen_text": resp.ScreenText,
-			"screen_hash": resp.ScreenHash,
-		})
+		outputProtoJSON(resp)
 		return
 	}
 	// Silent in text mode
@@ -88,11 +75,7 @@ func outputType(resp *virtuipb.TypeResponse, jsonMode bool) {
 
 func outputWait(resp *virtuipb.WaitResponse, jsonMode bool) {
 	if jsonMode {
-		outputJSON(map[string]any{
-			"screen_text": resp.ScreenText,
-			"screen_hash": resp.ScreenHash,
-			"elapsed_ms":  resp.ElapsedMs,
-		})
+		outputProtoJSON(resp)
 		return
 	}
 	fmt.Printf("ok (%dms)\n", resp.ElapsedMs)
@@ -100,21 +83,7 @@ func outputWait(resp *virtuipb.WaitResponse, jsonMode bool) {
 
 func outputSessions(resp *virtuipb.SessionsResponse, jsonMode bool) {
 	if jsonMode {
-		sessions := make([]map[string]any, 0, len(resp.Sessions))
-		for _, s := range resp.Sessions {
-			sessions = append(sessions, map[string]any{
-				"session_id":     s.SessionId,
-				"pid":            s.Pid,
-				"command":        s.Command,
-				"cols":           s.Cols,
-				"rows":           s.Rows,
-				"running":        s.Running,
-				"exit_code":      s.ExitCode,
-				"created_at":     s.CreatedAt,
-				"recording_path": s.RecordingPath,
-			})
-		}
-		outputJSON(sessions)
+		outputProtoJSON(resp)
 		return
 	}
 	if len(resp.Sessions) == 0 {
@@ -136,13 +105,7 @@ func outputSessions(resp *virtuipb.SessionsResponse, jsonMode bool) {
 
 func outputPipeline(resp *virtuipb.PipelineResponse, jsonMode bool) {
 	if jsonMode {
-		b, err := protojson.Marshal(resp)
-		if err == nil {
-			os.Stdout.Write(b)
-			os.Stdout.Write([]byte("\n"))
-		} else {
-			outputJSON(resp)
-		}
+		outputProtoJSON(resp)
 		return
 	}
 	for _, r := range resp.Results {

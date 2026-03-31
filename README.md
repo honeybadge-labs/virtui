@@ -77,6 +77,9 @@ virtui --json screenshot a1b2c3d4
 # {"screen_text":"...","screen_hash":"5da7...","cursor_row":3,"cursor_col":10,"cols":80,"rows":24}
 ```
 
+> **Note:** Fields backed by proto3 `int64` (`elapsed_ms`, `created_at`) are serialized as
+> JSON strings per the [proto3 JSON mapping](https://protobuf.dev/programming-guides/proto3/#json).
+
 ## Architecture
 
 ```
@@ -220,7 +223,7 @@ virtui exec a1b2c3d4 "npm install" --wait "added" --timeout 60000
   "screen_hash": "5da7a532...",
   "cursor_row": 10,
   "cursor_col": 2,
-  "elapsed_ms": 150
+  "elapsed_ms": "150"
 }
 ```
 
@@ -323,7 +326,7 @@ virtui wait a1b2c3d4 --text "Done" --timeout 60000
 {
   "screen_text": "...",
   "screen_hash": "...",
-  "elapsed_ms": 2340
+  "elapsed_ms": "2340"
 }
 ```
 
@@ -377,19 +380,21 @@ virtui --json sessions show a1b2c3d4
 **Output (JSON):**
 
 ```json
-[
-  {
-    "session_id": "a1b2c3d4",
-    "pid": 1234,
-    "command": ["bash"],
-    "cols": 80,
-    "rows": 24,
-    "running": true,
-    "exit_code": 0,
-    "created_at": 1711900000,
-    "recording_path": ""
-  }
-]
+{
+  "sessions": [
+    {
+      "session_id": "a1b2c3d4",
+      "pid": 1234,
+      "command": ["bash"],
+      "cols": 80,
+      "rows": 24,
+      "running": true,
+      "exit_code": -1,
+      "created_at": "1711900000",
+      "recording_path": ""
+    }
+  ]
+}
 ```
 
 ---
