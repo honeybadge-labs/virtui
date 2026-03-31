@@ -40,7 +40,7 @@ type RunCmd struct {
 	Cols       uint32   `help:"Terminal columns." default:"80"`
 	Rows       uint32   `help:"Terminal rows." default:"24"`
 	Env        []string `help:"Environment variables (KEY=VALUE)." short:"e"`
-	Dir        string   `help:"Working directory."`
+	Dir        string   `help:"Working directory." short:"d"`
 	Record     bool     `help:"Record session in asciicast v2 format."`
 	RecordPath string   `help:"Custom recording file path."`
 }
@@ -116,6 +116,10 @@ type DaemonStopCmd struct{}
 
 type DaemonStatusCmd struct{}
 
+func connect(cli *CLI) (*client.Client, error) {
+	return client.New(cli.Socket)
+}
+
 func main() {
 	cli := CLI{}
 	ctx := kong.Parse(&cli,
@@ -133,9 +137,9 @@ func main() {
 }
 
 func (cmd *RunCmd) Run(cli *CLI) error {
-	c, err := client.New(cli.Socket)
+	c, err := connect(cli)
 	if err != nil {
-		return fmt.Errorf("connect: %w", err)
+		return err
 	}
 	defer c.Close()
 	resp, err := c.Run(context.Background(), &virtuipb.RunRequest{
@@ -155,9 +159,9 @@ func (cmd *RunCmd) Run(cli *CLI) error {
 }
 
 func (cmd *ExecCmd) Run(cli *CLI) error {
-	c, err := client.New(cli.Socket)
+	c, err := connect(cli)
 	if err != nil {
-		return fmt.Errorf("connect: %w", err)
+		return err
 	}
 	defer c.Close()
 	req := &virtuipb.ExecRequest{
@@ -183,9 +187,9 @@ func (cmd *ExecCmd) Run(cli *CLI) error {
 }
 
 func (cmd *ScreenshotCmd) Run(cli *CLI) error {
-	c, err := client.New(cli.Socket)
+	c, err := connect(cli)
 	if err != nil {
-		return fmt.Errorf("connect: %w", err)
+		return err
 	}
 	defer c.Close()
 	resp, err := c.Screenshot(context.Background(), &virtuipb.ScreenshotRequest{
@@ -199,9 +203,9 @@ func (cmd *ScreenshotCmd) Run(cli *CLI) error {
 }
 
 func (cmd *PressCmd) Run(cli *CLI) error {
-	c, err := client.New(cli.Socket)
+	c, err := connect(cli)
 	if err != nil {
-		return fmt.Errorf("connect: %w", err)
+		return err
 	}
 	defer c.Close()
 	resp, err := c.Press(context.Background(), &virtuipb.PressRequest{
@@ -217,9 +221,9 @@ func (cmd *PressCmd) Run(cli *CLI) error {
 }
 
 func (cmd *TypeCmd) Run(cli *CLI) error {
-	c, err := client.New(cli.Socket)
+	c, err := connect(cli)
 	if err != nil {
-		return fmt.Errorf("connect: %w", err)
+		return err
 	}
 	defer c.Close()
 	resp, err := c.Type(context.Background(), &virtuipb.TypeRequest{
@@ -234,9 +238,9 @@ func (cmd *TypeCmd) Run(cli *CLI) error {
 }
 
 func (cmd *WaitCmd) Run(cli *CLI) error {
-	c, err := client.New(cli.Socket)
+	c, err := connect(cli)
 	if err != nil {
-		return fmt.Errorf("connect: %w", err)
+		return err
 	}
 	defer c.Close()
 	req := &virtuipb.WaitRequest{
@@ -261,9 +265,9 @@ func (cmd *WaitCmd) Run(cli *CLI) error {
 }
 
 func (cmd *KillCmd) Run(cli *CLI) error {
-	c, err := client.New(cli.Socket)
+	c, err := connect(cli)
 	if err != nil {
-		return fmt.Errorf("connect: %w", err)
+		return err
 	}
 	defer c.Close()
 	_, err = c.Kill(context.Background(), &virtuipb.KillRequest{
@@ -281,9 +285,9 @@ func (cmd *KillCmd) Run(cli *CLI) error {
 }
 
 func (cmd *ResizeCmd) Run(cli *CLI) error {
-	c, err := client.New(cli.Socket)
+	c, err := connect(cli)
 	if err != nil {
-		return fmt.Errorf("connect: %w", err)
+		return err
 	}
 	defer c.Close()
 	_, err = c.Resize(context.Background(), &virtuipb.ResizeRequest{
@@ -303,9 +307,9 @@ func (cmd *ResizeCmd) Run(cli *CLI) error {
 }
 
 func (cmd *SessionsShowCmd) Run(cli *CLI) error {
-	c, err := client.New(cli.Socket)
+	c, err := connect(cli)
 	if err != nil {
-		return fmt.Errorf("connect: %w", err)
+		return err
 	}
 	defer c.Close()
 	resp, err := c.Sessions(context.Background(), &virtuipb.SessionsRequest{
@@ -319,9 +323,9 @@ func (cmd *SessionsShowCmd) Run(cli *CLI) error {
 }
 
 func (cmd *PipelineCmd) Run(cli *CLI) error {
-	c, err := client.New(cli.Socket)
+	c, err := connect(cli)
 	if err != nil {
-		return fmt.Errorf("connect: %w", err)
+		return err
 	}
 	defer c.Close()
 

@@ -20,14 +20,15 @@ type Client struct {
 
 // New creates a new client connected to the daemon at the given socket path.
 func New(socketPath string) (*Client, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	// Eagerly check the socket is reachable so callers get a clear error.
+	probe, err := net.DialTimeout("unix", socketPath, 2*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("daemon not reachable at %s — start it with: virtui daemon start", socketPath)
+	}
+	probe.Close()
 
-	conn, err := grpc.DialContext(ctx, "unix://"+socketPath,
+	conn, err := grpc.NewClient("unix://"+socketPath,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
-			return net.DialTimeout("unix", socketPath, 5*time.Second)
-		}),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("connect to daemon at %s: %w", socketPath, err)
