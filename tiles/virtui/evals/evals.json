@@ -1,0 +1,23 @@
+{
+  "skill_name": "virtui",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I have a small Go CLI tool at ./testapp that prints 'Hello, World!' when run with no args and prints usage info when run with --help. Can you use virtui to launch it both ways and verify the output is correct?",
+      "expected_output": "Agent starts daemon, runs two sessions (or reuses one), executes ./testapp and ./testapp --help, uses screenshots or exec with --wait to verify the expected output appears, then cleans up sessions and stops daemon.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I want to test that vim opens a file correctly. Launch vim with a new file called /tmp/virtui-test.txt, type 'hello from virtui', save and quit, then cat the file to confirm it was written.",
+      "expected_output": "Agent uses virtui to launch vim, sends keystrokes (i for insert mode, types text, Escape, :wq Enter), then runs cat to verify. Uses press for special keys and type for text input. Properly sequences the vim workflow.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Record a terminal demo that shows: creating a new directory, initializing a git repo in it, creating a README.md file with some content, git adding and committing it, and showing the git log. Save the recording so I can replay it with asciinema.",
+      "expected_output": "Agent starts a recorded session with --record, executes the sequence of git commands with appropriate waits between them, kills the session to finalize the recording, and tells the user where the .cast file is.",
+      "files": []
+    }
+  ]
+}
