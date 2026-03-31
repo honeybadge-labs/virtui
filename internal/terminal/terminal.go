@@ -4,7 +4,6 @@ package terminal
 import (
 	"crypto/sha256"
 	"fmt"
-	"strings"
 )
 
 // Screen represents a snapshot of the terminal screen.
@@ -42,26 +41,4 @@ type Terminal interface {
 	Subscribe() (updates <-chan struct{}, cancel func())
 	// Close terminates the terminal and cleans up resources.
 	Close() error
-}
-
-// extractText reads the vt10x terminal state into a screen text string.
-// It trims trailing whitespace from each row.
-func extractText(cols, rows int, cellAt func(col, row int) (rune, bool)) string {
-	var sb strings.Builder
-	for row := 0; row < rows; row++ {
-		var line strings.Builder
-		for col := 0; col < cols; col++ {
-			ch, ok := cellAt(col, row)
-			if !ok || ch == 0 {
-				line.WriteRune(' ')
-			} else {
-				line.WriteRune(ch)
-			}
-		}
-		sb.WriteString(strings.TrimRight(line.String(), " "))
-		if row < rows-1 {
-			sb.WriteRune('\n')
-		}
-	}
-	return sb.String()
 }

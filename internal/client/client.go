@@ -25,7 +25,7 @@ func New(socketPath string) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("daemon not reachable at %s — start it with: virtui daemon start", socketPath)
 	}
-	probe.Close()
+	_ = probe.Close()
 
 	conn, err := grpc.NewClient("unix://"+socketPath,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),

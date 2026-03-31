@@ -141,7 +141,7 @@ func (cmd *RunCmd) Run(cli *CLI) error {
 	if err != nil {
 		return err
 	}
-	defer c.Close()
+	defer c.Close() //nolint:errcheck
 	resp, err := c.Run(context.Background(), &virtuipb.RunRequest{
 		Command:    cmd.Command,
 		Cols:       cmd.Cols,
@@ -163,7 +163,7 @@ func (cmd *ExecCmd) Run(cli *CLI) error {
 	if err != nil {
 		return err
 	}
-	defer c.Close()
+	defer c.Close() //nolint:errcheck
 	req := &virtuipb.ExecRequest{
 		SessionId: cmd.Session,
 		Input:     cmd.Input,
@@ -191,7 +191,7 @@ func (cmd *ScreenshotCmd) Run(cli *CLI) error {
 	if err != nil {
 		return err
 	}
-	defer c.Close()
+	defer c.Close() //nolint:errcheck
 	resp, err := c.Screenshot(context.Background(), &virtuipb.ScreenshotRequest{
 		SessionId: cmd.Session,
 	})
@@ -207,7 +207,7 @@ func (cmd *PressCmd) Run(cli *CLI) error {
 	if err != nil {
 		return err
 	}
-	defer c.Close()
+	defer c.Close() //nolint:errcheck
 	resp, err := c.Press(context.Background(), &virtuipb.PressRequest{
 		SessionId: cmd.Session,
 		Keys:      cmd.Keys,
@@ -225,7 +225,7 @@ func (cmd *TypeCmd) Run(cli *CLI) error {
 	if err != nil {
 		return err
 	}
-	defer c.Close()
+	defer c.Close() //nolint:errcheck
 	resp, err := c.Type(context.Background(), &virtuipb.TypeRequest{
 		SessionId: cmd.Session,
 		Text:      cmd.Text,
@@ -242,7 +242,7 @@ func (cmd *WaitCmd) Run(cli *CLI) error {
 	if err != nil {
 		return err
 	}
-	defer c.Close()
+	defer c.Close() //nolint:errcheck
 	req := &virtuipb.WaitRequest{
 		SessionId: cmd.Session,
 		TimeoutMs: cmd.Timeout,
@@ -269,7 +269,7 @@ func (cmd *KillCmd) Run(cli *CLI) error {
 	if err != nil {
 		return err
 	}
-	defer c.Close()
+	defer c.Close() //nolint:errcheck
 	_, err = c.Kill(context.Background(), &virtuipb.KillRequest{
 		SessionId: cmd.Session,
 	})
@@ -289,7 +289,7 @@ func (cmd *ResizeCmd) Run(cli *CLI) error {
 	if err != nil {
 		return err
 	}
-	defer c.Close()
+	defer c.Close() //nolint:errcheck
 	_, err = c.Resize(context.Background(), &virtuipb.ResizeRequest{
 		SessionId: cmd.Session,
 		Cols:      cmd.Cols,
@@ -311,7 +311,7 @@ func (cmd *SessionsShowCmd) Run(cli *CLI) error {
 	if err != nil {
 		return err
 	}
-	defer c.Close()
+	defer c.Close() //nolint:errcheck
 	resp, err := c.Sessions(context.Background(), &virtuipb.SessionsRequest{
 		SessionId: cmd.Session,
 	})
@@ -327,7 +327,7 @@ func (cmd *PipelineCmd) Run(cli *CLI) error {
 	if err != nil {
 		return err
 	}
-	defer c.Close()
+	defer c.Close() //nolint:errcheck
 
 	var data []byte
 	if cmd.File != "" {
@@ -402,12 +402,12 @@ func runDaemonBackground(socketPath string) error {
 	}
 	proc, err := os.StartProcess(exe, []string{exe, "--socket", socketPath, "daemon", "start", "--foreground"}, attr)
 	if err != nil {
-		logFile.Close()
+		_ = logFile.Close()
 		return fmt.Errorf("start daemon: %w", err)
 	}
 	pid := proc.Pid
 	_ = proc.Release()
-	logFile.Close()
+	_ = logFile.Close()
 	fmt.Fprintf(os.Stderr, "daemon started (pid %d), socket: %s\n", pid, socketPath)
 	return nil
 }
