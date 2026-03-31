@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -15,6 +14,7 @@ import (
 	"github.com/honeybadge-labs/virtui/internal/client"
 	"github.com/honeybadge-labs/virtui/internal/daemon"
 	virtuipb "github.com/honeybadge-labs/virtui/proto/virtui/v1"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var (
@@ -155,6 +155,11 @@ func main() {
 }
 
 func (cmd *RunCmd) Run(cli *CLI) error {
+	// Default to caller's working directory so sessions don't inherit
+	// the daemon's CWD (which is "/" when started in background).
+	if cmd.Dir == "" {
+		cmd.Dir, _ = os.Getwd()
+	}
 	c, err := connect(cli)
 	if err != nil {
 		return err
@@ -363,7 +368,7 @@ func (cmd *PipelineCmd) Run(cli *CLI) error {
 	req := &virtuipb.PipelineRequest{
 		SessionId: cmd.Session,
 	}
-	if err := json.Unmarshal(data, req); err != nil {
+	if err := protojson.Unmarshal(data, req); err != nil {
 		return fmt.Errorf("parse pipeline JSON: %w", err)
 	}
 	// Ensure session_id from arg takes precedence

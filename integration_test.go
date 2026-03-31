@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func startTestDaemon(t *testing.T) (virtuipb.VirtuiServiceClient, func()) {
@@ -625,6 +626,73 @@ func TestIntegration_Pipeline(t *testing.T) {
 	}
 	if !strings.Contains(ssResult.ScreenText, "pipeline-step-1") {
 		t.Errorf("screenshot should contain 'pipeline-step-1', got:\n%s", ssResult.ScreenText)
+	}
+}
+
+// TestIntegration_PipelineSkillExample validates that the JSON format documented
+// in SKILL.md (the recommended Claude Code pipeline pattern) parses correctly
+// via protojson and executes end-to-end.
+func TestIntegration_PipelineSkillExample(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	client, cleanup := startTestDaemon(t)
+	defer cleanup()
+	ctx := context.Background()
+	sid := runBash(t, ctx, client)
+
+	// This is the exact JSON shape from SKILL.md § "Running a command reliably from Claude Code".
+	// Uses snake_case keys to match the documented examples.
+	skillJSON := `{"steps":[
+		{"type":{"text":"echo hello world"}},
+		{"press":{"keys":["Enter"]}},
+		{"wait":{"condition":{"text":"hello world"},"timeout_ms":5000}},
+		{"screenshot":{}}
+	],"stop_on_error":true}`
+
+	req := &virtuipb.PipelineRequest{SessionId: sid}
+	if err := protojson.Unmarshal([]byte(skillJSON), req); err != nil {
+		t.Fatalf("protojson.Unmarshal of SKILL.md example failed: %v", err)
+	}
+	req.SessionId = sid
+
+	if len(req.Steps) != 4 {
+		t.Fatalf("expected 4 steps, got %d", len(req.Steps))
+	}
+	// Verify each step parsed into the correct oneof variant.
+	if req.Steps[0].GetType() == nil {
+		t.Fatal("step 0: expected TypeRequest, got nil")
+	}
+	if req.Steps[1].GetPress() == nil {
+		t.Fatal("step 1: expected PressRequest, got nil")
+	}
+	if req.Steps[2].GetWait() == nil {
+		t.Fatal("step 2: expected WaitRequest, got nil")
+	}
+	if req.Steps[3].GetScreenshot() == nil {
+		t.Fatal("step 3: expected ScreenshotRequest, got nil")
+	}
+
+	resp, err := client.Pipeline(ctx, req)
+	if err != nil {
+		t.Fatalf("Pipeline: %v", err)
+	}
+	if len(resp.Results) != 4 {
+		t.Fatalf("expected 4 results, got %d", len(resp.Results))
+	}
+	for i, r := range resp.Results {
+		if !r.Success {
+			t.Errorf("step %d failed: %s", i, r.ErrorMessage)
+		}
+	}
+
+	// The screenshot at step 3 should contain our echoed text.
+	ssResult := resp.Results[3].GetScreenshot()
+	if ssResult == nil {
+		t.Fatal("expected screenshot result at step 3")
+	}
+	if !strings.Contains(ssResult.ScreenText, "hello world") {
+		t.Errorf("screenshot should contain 'hello world', got:\n%s", ssResult.ScreenText)
 	}
 }
 

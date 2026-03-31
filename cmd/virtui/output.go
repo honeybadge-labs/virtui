@@ -8,6 +8,7 @@ import (
 	"text/tabwriter"
 
 	virtuipb "github.com/honeybadge-labs/virtui/proto/virtui/v1"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func outputJSON(v any) {
@@ -135,7 +136,13 @@ func outputSessions(resp *virtuipb.SessionsResponse, jsonMode bool) {
 
 func outputPipeline(resp *virtuipb.PipelineResponse, jsonMode bool) {
 	if jsonMode {
-		outputJSON(resp)
+		b, err := protojson.Marshal(resp)
+		if err == nil {
+			os.Stdout.Write(b)
+			os.Stdout.Write([]byte("\n"))
+		} else {
+			outputJSON(resp)
+		}
 		return
 	}
 	for _, r := range resp.Results {
