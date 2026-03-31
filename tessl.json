@@ -1,0 +1,15 @@
+{
+  "name": "my-project",
+  "mode": "vendored",
+  "dependencies": {
+    "anthropics/skills": {
+      "version": "98669c11ca63e9c81c11501e1437e5c47b556621",
+      "source": "https://github.com/anthropics/skills",
+      "include": {
+        "skills": [
+          "skill-creator"
+        ]
+      }
+    }
+  }
+}
