@@ -55,10 +55,10 @@ func (s *Server) Start() error {
 
 // Stop gracefully shuts down the server.
 func (s *Server) Stop() {
-	s.manager.CloseAll()
+	_ = s.manager.CloseAll()
 	s.grpcServer.GracefulStop()
 	if s.listener != nil {
-		s.listener.Close()
+		_ = s.listener.Close()
 	}
 	_ = os.Remove(s.socketPath)
 }

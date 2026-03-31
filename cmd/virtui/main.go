@@ -402,12 +402,12 @@ func runDaemonBackground(socketPath string) error {
 	}
 	proc, err := os.StartProcess(exe, []string{exe, "--socket", socketPath, "daemon", "start", "--foreground"}, attr)
 	if err != nil {
-		logFile.Close()
+		_ = logFile.Close()
 		return fmt.Errorf("start daemon: %w", err)
 	}
 	pid := proc.Pid
 	_ = proc.Release()
-	logFile.Close()
+	_ = logFile.Close()
 	fmt.Fprintf(os.Stderr, "daemon started (pid %d), socket: %s\n", pid, socketPath)
 	return nil
 }
@@ -420,7 +420,7 @@ func (cmd *DaemonStopCmd) Run(cli *CLI) error {
 		fmt.Fprintln(os.Stderr, "daemon not running (cleaned up socket)")
 		return nil
 	}
-	c.Close()
+	_ = c.Close()
 	// The daemon is running. We signal it by removing the socket which
 	// won't actually stop it. For a clean stop, we'd need a Stop RPC.
 	// For now, find and kill the process listening on the socket.
@@ -438,7 +438,7 @@ func (cmd *DaemonStatusCmd) Run(cli *CLI) error {
 		}
 		return nil
 	}
-	c.Close()
+	_ = c.Close()
 	if cli.JSON {
 		outputJSON(map[string]any{"running": true, "socket": cli.Socket})
 	} else {

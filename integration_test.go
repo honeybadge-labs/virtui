@@ -26,14 +26,12 @@ func startTestDaemon(t *testing.T) (virtuipb.VirtuiServiceClient, func()) {
 	if err != nil {
 		t.Fatalf("mktemp: %v", err)
 	}
-	t.Cleanup(func() { os.RemoveAll(dir) })
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
 	socketPath := filepath.Join(dir, "t.sock")
 
 	srv := daemon.NewServer(socketPath)
 	go func() {
-		if err := srv.Start(); err != nil {
-			// Server stopped
-		}
+		_ = srv.Start()
 	}()
 
 	// Wait for socket to be available
@@ -56,7 +54,7 @@ func startTestDaemon(t *testing.T) (virtuipb.VirtuiServiceClient, func()) {
 	}
 	client := virtuipb.NewVirtuiServiceClient(conn)
 	cleanup := func() {
-		conn.Close()
+		_ = conn.Close()
 		srv.Stop()
 	}
 	return client, cleanup
@@ -79,7 +77,7 @@ func runBash(t *testing.T, ctx context.Context, client virtuipb.VirtuiServiceCli
 		t.Fatalf("Run: %v", err)
 	}
 	t.Cleanup(func() {
-		client.Kill(ctx, &virtuipb.KillRequest{SessionId: resp.SessionId})
+		_, _ = client.Kill(ctx, &virtuipb.KillRequest{SessionId: resp.SessionId})
 	})
 	// Give bash a moment to start
 	time.Sleep(500 * time.Millisecond)
@@ -212,7 +210,7 @@ func TestIntegration_PressAndType(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	defer client.Kill(ctx, &virtuipb.KillRequest{SessionId: runResp.SessionId})
+	defer func() { _, _ = client.Kill(ctx, &virtuipb.KillRequest{SessionId: runResp.SessionId}) }()
 
 	time.Sleep(500 * time.Millisecond)
 

@@ -1,0 +1,11 @@
+version: "2"
+
+linters:
+  default: standard
+  settings:
+    errcheck:
+      exclude-functions:
+        - (*os.File).Close
+        - (io.Closer).Close
+        - (*google.golang.org/grpc.ClientConn).Close
+        - (*github.com/honeybadge-labs/virtui/internal/client.Client).Close

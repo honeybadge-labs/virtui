@@ -66,7 +66,7 @@ func (m *Manager) Create(opts CreateOpts) (*Info, error) {
 		var recErr error
 		rec, recErr = terminal.NewRecorder(f, cols, rows)
 		if recErr != nil {
-			f.Close()
+			_ = f.Close()
 			return nil, fmt.Errorf("create recorder: %w", recErr)
 		}
 	}

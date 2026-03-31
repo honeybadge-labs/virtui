@@ -13,7 +13,7 @@ import (
 func outputJSON(v any) {
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
-	enc.Encode(v)
+	_ = enc.Encode(v)
 }
 
 func outputRun(resp *virtuipb.RunResponse, jsonMode bool) {
@@ -121,16 +121,16 @@ func outputSessions(resp *virtuipb.SessionsResponse, jsonMode bool) {
 		return
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "ID\tPID\tCOMMAND\tSIZE\tSTATUS")
+	_, _ = fmt.Fprintln(w, "ID\tPID\tCOMMAND\tSIZE\tSTATUS")
 	for _, s := range resp.Sessions {
 		status := "running"
 		if !s.Running {
 			status = fmt.Sprintf("exited(%d)", s.ExitCode)
 		}
 		cmd := strings.Join(s.Command, " ")
-		fmt.Fprintf(w, "%s\t%d\t%s\t%dx%d\t%s\n", s.SessionId, s.Pid, cmd, s.Cols, s.Rows, status)
+		_, _ = fmt.Fprintf(w, "%s\t%d\t%s\t%dx%d\t%s\n", s.SessionId, s.Pid, cmd, s.Cols, s.Rows, status)
 	}
-	w.Flush()
+	_ = w.Flush()
 }
 
 func outputPipeline(resp *virtuipb.PipelineResponse, jsonMode bool) {
