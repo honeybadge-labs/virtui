@@ -7,9 +7,19 @@ drive terminal applications via a gRPC API over Unix domain sockets.
 
 ### Install
 
+**Homebrew (macOS & Linux):**
+
+```bash
+brew install honeybadge-labs/tap/virtui
+```
+
+**Go:**
+
 ```bash
 go install github.com/honeybadge-labs/virtui/cmd/virtui@latest
 ```
+
+**Binary releases:** download from [GitHub Releases](https://github.com/honeybadge-labs/virtui/releases).
 
 ### Quick Start
 

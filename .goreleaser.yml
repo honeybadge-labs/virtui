@@ -29,6 +29,15 @@ changelog:
       - "^test:"
       - "^ci:"
 
+brews:
+  - repository:
+      owner: honeybadge-labs
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    homepage: https://github.com/honeybadge-labs/virtui
+    description: TUI automation for AI agents
+    license: Apache-2.0
+
 release:
   github:
     owner: honeybadge-labs
