@@ -25,6 +25,18 @@ func NewHandler(mgr *session.Manager) *Handler {
 	}
 }
 
+// getRunning fetches a session and verifies the process is still alive.
+func (h *Handler) getRunning(id string) (*session.Session, error) {
+	sess, err := h.manager.Get(id)
+	if err != nil {
+		return nil, err
+	}
+	if !sess.Terminal.Running() {
+		return nil, verrors.SessionNotRunning(id)
+	}
+	return sess, nil
+}
+
 func (h *Handler) Run(_ context.Context, req *virtuipb.RunRequest) (*virtuipb.RunResponse, error) {
 	if len(req.Command) == 0 {
 		return nil, verrors.Validation("command is required")
@@ -74,7 +86,7 @@ func (h *Handler) Resize(_ context.Context, req *virtuipb.ResizeRequest) (*virtu
 	if req.SessionId == "" {
 		return nil, verrors.Validation("session_id is required")
 	}
-	sess, err := h.manager.Get(req.SessionId)
+	sess, err := h.getRunning(req.SessionId)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +100,7 @@ func (h *Handler) Exec(ctx context.Context, req *virtuipb.ExecRequest) (*virtuip
 	if req.SessionId == "" {
 		return nil, verrors.Validation("session_id is required")
 	}
-	sess, err := h.manager.Get(req.SessionId)
+	sess, err := h.getRunning(req.SessionId)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +156,7 @@ func (h *Handler) Press(_ context.Context, req *virtuipb.PressRequest) (*virtuip
 	if req.SessionId == "" {
 		return nil, verrors.Validation("session_id is required")
 	}
-	sess, err := h.manager.Get(req.SessionId)
+	sess, err := h.getRunning(req.SessionId)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +178,7 @@ func (h *Handler) Type(_ context.Context, req *virtuipb.TypeRequest) (*virtuipb.
 	if req.SessionId == "" {
 		return nil, verrors.Validation("session_id is required")
 	}
-	sess, err := h.manager.Get(req.SessionId)
+	sess, err := h.getRunning(req.SessionId)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +199,7 @@ func (h *Handler) Wait(ctx context.Context, req *virtuipb.WaitRequest) (*virtuip
 	if req.SessionId == "" {
 		return nil, verrors.Validation("session_id is required")
 	}
-	sess, err := h.manager.Get(req.SessionId)
+	sess, err := h.getRunning(req.SessionId)
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +233,7 @@ func (h *Handler) Pipeline(ctx context.Context, req *virtuipb.PipelineRequest) (
 	if req.SessionId == "" {
 		return nil, verrors.Validation("session_id is required")
 	}
-	sess, err := h.manager.Get(req.SessionId)
+	sess, err := h.getRunning(req.SessionId)
 	if err != nil {
 		return nil, err
 	}
