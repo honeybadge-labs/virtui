@@ -23,6 +23,9 @@ type Emulator struct {
 	cols int
 	rows int
 
+	// pending resize (applied in pump goroutine to avoid vt lock contention)
+	pendingResize chan [2]int
+
 	// subscribers for screen change notifications
 	subMu   sync.Mutex
 	subs    map[int]chan struct{}
@@ -78,15 +81,16 @@ func NewEmulator(opts EmulatorOpts) (*Emulator, error) {
 	vt := vt10x.New(vt10x.WithSize(opts.Cols, opts.Rows), vt10x.WithWriter(ptmx))
 
 	e := &Emulator{
-		ptyF:     ptmx,
-		vt:       vt,
-		cmd:      cmd,
-		cols:     opts.Cols,
-		rows:     opts.Rows,
-		subs:     make(map[int]chan struct{}),
-		exitCode: -1,
-		exitCh:   make(chan struct{}),
-		recorder: opts.Recorder,
+		ptyF:          ptmx,
+		vt:            vt,
+		cmd:           cmd,
+		cols:          opts.Cols,
+		rows:          opts.Rows,
+		pendingResize: make(chan [2]int, 1),
+		subs:          make(map[int]chan struct{}),
+		exitCode:      -1,
+		exitCh:        make(chan struct{}),
+		recorder:      opts.Recorder,
 	}
 
 	// Start pump goroutine: reads PTY output -> writes to vt10x -> notifies subscribers
@@ -106,6 +110,12 @@ func (e *Emulator) pump() {
 	}
 	br := bufio.NewReader(r)
 	for {
+		// Apply any pending resize between Parse calls (when the vt lock is free).
+		select {
+		case sz := <-e.pendingResize:
+			e.vt.Resize(sz[0], sz[1])
+		default:
+		}
 		err := e.vt.Parse(br)
 		if err != nil {
 			return
@@ -194,10 +204,21 @@ func (e *Emulator) Resize(cols, rows int) error {
 	e.rows = rows
 	e.mu.Unlock()
 
-	e.vt.Lock()
-	e.vt.Resize(cols, rows)
-	e.vt.Unlock()
+	// Enqueue vt resize to be applied in the pump goroutine (avoids
+	// contending with the vt lock that Parse holds while blocking on IO).
+	select {
+	case e.pendingResize <- [2]int{cols, rows}:
+	default:
+		// Replace any already-pending resize with the latest one.
+		select {
+		case <-e.pendingResize:
+		default:
+		}
+		e.pendingResize <- [2]int{cols, rows}
+	}
 
+	// Set PTY size — this sends SIGWINCH to the child, causing it to
+	// write escape sequences that wake up Parse and drain the pending resize.
 	return pty.Setsize(e.ptyF, &pty.Winsize{
 		Cols: uint16(cols),
 		Rows: uint16(rows),
