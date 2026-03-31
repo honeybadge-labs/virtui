@@ -17,10 +17,17 @@ import (
 	virtuipb "github.com/honeybadge-labs/virtui/proto/virtui/v1"
 )
 
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 // CLI is the top-level command structure.
 type CLI struct {
-	JSON   bool   `help:"Output in JSON format." short:"j"`
-	Socket string `help:"Daemon socket path." default:"~/.virtui/daemon.sock" env:"VIRTUI_SOCKET"`
+	JSON    bool     `help:"Output in JSON format." short:"j"`
+	Socket  string   `help:"Daemon socket path." default:"~/.virtui/daemon.sock" env:"VIRTUI_SOCKET"`
+	Version VersionCmd `cmd:"" help:"Print version information."`
 
 	Run        RunCmd        `cmd:"" help:"Spawn a new terminal session."`
 	Exec       ExecCmd       `cmd:"" help:"Type input, press Enter, optionally wait."`
@@ -100,6 +107,17 @@ type SessionsShowCmd struct {
 type PipelineCmd struct {
 	Session string `arg:"" help:"Session ID."`
 	File    string `help:"JSON file with steps." optional:"" type:"existingfile"`
+}
+
+type VersionCmd struct{}
+
+func (cmd *VersionCmd) Run(cli *CLI) error {
+	if cli.JSON {
+		outputJSON(map[string]any{"version": version, "commit": commit, "date": date})
+	} else {
+		fmt.Printf("virtui %s (commit: %s, built: %s)\n", version, commit, date)
+	}
+	return nil
 }
 
 type DaemonCmd struct {
