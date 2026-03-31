@@ -8,7 +8,7 @@ drive terminal applications via a gRPC API over Unix domain sockets.
 ### Install
 
 ```bash
-go install github.com/rotemtam/virtui/cmd/virtui@latest
+go install github.com/honeybadge-labs/virtui/cmd/virtui@latest
 ```
 
 ### Quick Start
@@ -49,7 +49,7 @@ virtui --json screenshot a1b2c3d4
 ```
 AI Agent / LLM
      |
-CLI (virtui)  or  Go SDK (import "github.com/rotemtam/virtui")
+CLI (virtui)  or  Go SDK (import "github.com/honeybadge-labs/virtui")
      |
 gRPC over Unix domain socket (~/.virtui/daemon.sock)
      |
@@ -472,7 +472,7 @@ import (
     "fmt"
     "log"
 
-    "github.com/rotemtam/virtui"
+    "github.com/honeybadge-labs/virtui"
 )
 
 func main() {

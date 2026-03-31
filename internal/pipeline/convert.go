@@ -3,7 +3,7 @@ package pipeline
 import (
 	"fmt"
 
-	virtuipb "github.com/rotemtam/virtui/proto/virtui/v1"
+	virtuipb "github.com/honeybadge-labs/virtui/proto/virtui/v1"
 )
 
 // ConvertSteps converts protobuf PipelineSteps to executable Steps.

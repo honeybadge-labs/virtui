@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rotemtam/virtui/internal/session"
-	"github.com/rotemtam/virtui/internal/terminal"
+	"github.com/honeybadge-labs/virtui/internal/session"
+	"github.com/honeybadge-labs/virtui/internal/terminal"
 )
 
 // Result is the outcome of a single pipeline step.

@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	verrors "github.com/rotemtam/virtui/internal/errors"
-	"github.com/rotemtam/virtui/internal/terminal"
+	verrors "github.com/honeybadge-labs/virtui/internal/errors"
+	"github.com/honeybadge-labs/virtui/internal/terminal"
 )
 
 // CreateOpts are options for creating a new session.

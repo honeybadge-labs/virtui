@@ -4,7 +4,7 @@ package session
 import (
 	"time"
 
-	"github.com/rotemtam/virtui/internal/terminal"
+	"github.com/honeybadge-labs/virtui/internal/terminal"
 )
 
 // Info contains metadata about a session (safe to send over the wire).

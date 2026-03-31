@@ -1,4 +1,4 @@
-module github.com/rotemtam/virtui
+module github.com/honeybadge-labs/virtui
 
 go 1.26.1
 

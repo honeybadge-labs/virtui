@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package virtui.v1;
 
-option go_package = "github.com/rotemtam/virtui/proto/virtui/v1;virtuipb";
+option go_package = "github.com/honeybadge-labs/virtui/proto/virtui/v1;virtuipb";
 
 service VirtuiService {
   rpc Run(RunRequest) returns (RunResponse);

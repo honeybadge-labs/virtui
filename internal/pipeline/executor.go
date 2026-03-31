@@ -3,7 +3,7 @@ package pipeline
 import (
 	"context"
 
-	"github.com/rotemtam/virtui/internal/session"
+	"github.com/honeybadge-labs/virtui/internal/session"
 )
 
 // Executor runs a sequence of pipeline steps.

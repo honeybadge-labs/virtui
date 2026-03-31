@@ -17,8 +17,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/rotemtam/virtui/internal/client"
-	virtuipb "github.com/rotemtam/virtui/proto/virtui/v1"
+	"github.com/honeybadge-labs/virtui/internal/client"
+	virtuipb "github.com/honeybadge-labs/virtui/proto/virtui/v1"
 )
 
 // Client is the public Go SDK client for virtui.

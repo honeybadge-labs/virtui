@@ -2223,7 +2223,7 @@ const file_proto_virtui_v1_virtui_proto_rawDesc = "" +
 	"\x04Type\x12\x16.virtui.v1.TypeRequest\x1a\x17.virtui.v1.TypeResponse\x127\n" +
 	"\x04Wait\x12\x16.virtui.v1.WaitRequest\x1a\x17.virtui.v1.WaitResponse\x12C\n" +
 	"\bPipeline\x12\x1a.virtui.v1.PipelineRequest\x1a\x1b.virtui.v1.PipelineResponse\x129\n" +
-	"\x05Watch\x12\x17.virtui.v1.WatchRequest\x1a\x15.virtui.v1.WatchEvent0\x01B5Z3github.com/rotemtam/virtui/proto/virtui/v1;virtuipbb\x06proto3"
+	"\x05Watch\x12\x17.virtui.v1.WatchRequest\x1a\x15.virtui.v1.WatchEvent0\x01B<Z:github.com/honeybadge-labs/virtui/proto/virtui/v1;virtuipbb\x06proto3"
 
 var (
 	file_proto_virtui_v1_virtui_proto_rawDescOnce sync.Once

@@ -3,7 +3,7 @@ package daemon
 import (
 	"context"
 
-	verrors "github.com/rotemtam/virtui/internal/errors"
+	verrors "github.com/honeybadge-labs/virtui/internal/errors"
 	"google.golang.org/grpc"
 )
 

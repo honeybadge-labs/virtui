@@ -1,5 +1,5 @@
 # Binaries
-virtui
+/virtui
 *.exe
 
 # IDE

@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/rotemtam/virtui/internal/session"
-	virtuipb "github.com/rotemtam/virtui/proto/virtui/v1"
+	"github.com/honeybadge-labs/virtui/internal/session"
+	virtuipb "github.com/honeybadge-labs/virtui/proto/virtui/v1"
 	"google.golang.org/grpc"
 )
 

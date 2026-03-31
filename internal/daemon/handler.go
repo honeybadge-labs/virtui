@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	verrors "github.com/rotemtam/virtui/internal/errors"
-	"github.com/rotemtam/virtui/internal/pipeline"
-	"github.com/rotemtam/virtui/internal/session"
-	virtuipb "github.com/rotemtam/virtui/proto/virtui/v1"
+	verrors "github.com/honeybadge-labs/virtui/internal/errors"
+	"github.com/honeybadge-labs/virtui/internal/pipeline"
+	"github.com/honeybadge-labs/virtui/internal/session"
+	virtuipb "github.com/honeybadge-labs/virtui/proto/virtui/v1"
 )
 
 // Handler implements the VirtuiServiceServer gRPC interface.
