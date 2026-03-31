@@ -9,3 +9,8 @@
 
 # OS
 .DS_Store
+
+# Local tooling
+.mcp.json
+.tessl/
+.github/skills/
