@@ -21,6 +21,10 @@ npx tessl i honeybadge/virtui
 npx skills add honeybadge-labs/virtui
 ```
 
+Then prompt your agent:
+
+> Use /virtui to create a recording of you using the Claude TUI to calculate 2+2
+
 ### Install
 
 **Homebrew (macOS & Linux):**
