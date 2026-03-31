@@ -405,9 +405,10 @@ func runDaemonBackground(socketPath string) error {
 		logFile.Close()
 		return fmt.Errorf("start daemon: %w", err)
 	}
+	pid := proc.Pid
 	_ = proc.Release()
 	logFile.Close()
-	fmt.Fprintf(os.Stderr, "daemon started (pid %d), socket: %s\n", proc.Pid, socketPath)
+	fmt.Fprintf(os.Stderr, "daemon started (pid %d), socket: %s\n", pid, socketPath)
 	return nil
 }
 
