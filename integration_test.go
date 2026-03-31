@@ -210,7 +210,7 @@ func TestIntegration_PressAndType(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	defer client.Kill(ctx, &virtuipb.KillRequest{SessionId: runResp.SessionId}) //nolint:errcheck
+	defer func() { _, _ = client.Kill(ctx, &virtuipb.KillRequest{SessionId: runResp.SessionId}) }()
 
 	time.Sleep(500 * time.Millisecond)
 
@@ -538,7 +538,7 @@ func TestIntegration_Recording(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open cast: %v", err)
 	}
-	defer f.Close() //nolint:errcheck
+	defer f.Close()
 
 	scanner := bufio.NewScanner(f)
 
