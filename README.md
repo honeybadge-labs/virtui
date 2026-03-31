@@ -7,9 +7,12 @@
 TUI automation for AI agents. A daemon + CLI that lets AI agents programmatically
 drive terminal applications via a gRPC API over Unix domain sockets.
 
-## Getting Started
+## Use Cases
 
-### Install Skill
+- **Proof of work** — Have agents showcase the feature they built or bug they fixed, and submit recordings alongside their PRs for easy reviews.
+- **Tight feedback loops** — Tell agents to USE the TUI to make sure the UI works properly.
+
+## Install Skill
 
 Add the virtui skill to your AI agent:
 
@@ -25,14 +28,7 @@ Then prompt your agent:
 
 > Use /virtui to create a recording of you opening vim, saving a file named hello.txt and exiting.
 
-Exiting `vim` has long been a rite of passage, and Claude now surpasses many human engineers.
-
-### Use Cases
-
-- **Proof of work** — Have agents showcase the feature they built or bug they fixed, and submit recordings alongside their PRs for easy reviews.
-- **Tight feedback loops** — Tell agents to USE the TUI to make sure the UI works properly.
-
-### Install
+## Install
 
 **Homebrew (macOS & Linux):**
 
@@ -48,7 +44,7 @@ go install github.com/honeybadge-labs/virtui/cmd/virtui@latest
 
 **Binary releases:** download from [GitHub Releases](https://github.com/honeybadge-labs/virtui/releases).
 
-### Quick Start
+## Quick Start
 
 ```bash
 # 1. Start the daemon
@@ -69,7 +65,7 @@ virtui kill a1b2c3d4
 virtui daemon stop
 ```
 
-### JSON Mode
+## JSON Mode
 
 All commands support `--json` (`-j`) for machine-readable output:
 
