@@ -1,0 +1,61 @@
+{
+  "context": "Tests whether the agent correctly uses wait strategies (choosing the right one for the scenario), increases timeout for long-running operations, uses screen_hash for change detection, and handles timeouts by taking a screenshot to diagnose state.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "Uses --json flag",
+      "max_score": 6,
+      "description": "All virtui commands that return data include --json or -j"
+    },
+    {
+      "name": "Daemon check and start",
+      "max_score": 6,
+      "description": "Script checks daemon status and starts it if not running before creating sessions"
+    },
+    {
+      "name": "Appropriate wait strategy",
+      "max_score": 15,
+      "description": "Uses --wait \"BUILD COMPLETE\" or --wait-regex with a relevant pattern (or pipeline wait with text condition) rather than polling with sleeps alone"
+    },
+    {
+      "name": "Timeout increased",
+      "max_score": 12,
+      "description": "The wait or exec command uses --timeout with a value greater than 30000 (e.g. 120000) to accommodate a potentially long-running build"
+    },
+    {
+      "name": "Screenshot on timeout",
+      "max_score": 15,
+      "description": "On a timeout condition (caught via exit code or error output), script runs `virtui screenshot` to capture the current terminal state"
+    },
+    {
+      "name": "Error state captured",
+      "max_score": 8,
+      "description": "The screen content captured on timeout is written to `error_state.txt`"
+    },
+    {
+      "name": "screen_hash used",
+      "max_score": 10,
+      "description": "Script references or logs the screen_hash value from screenshot output (rather than only comparing full screen_text) for change detection or logging"
+    },
+    {
+      "name": "Retryable check",
+      "max_score": 8,
+      "description": "Script or README references checking the `retryable` field from error output before deciding to retry"
+    },
+    {
+      "name": "Session killed",
+      "max_score": 8,
+      "description": "Session is killed with `virtui kill` after work is done (success or failure path)"
+    },
+    {
+      "name": "Daemon stopped",
+      "max_score": 5,
+      "description": "Script runs `virtui daemon stop` at the end"
+    },
+    {
+      "name": "Build report written",
+      "max_score": 7,
+      "description": "build_report.txt is written and contains captured screen output on the success path"
+    }
+  ]
+}

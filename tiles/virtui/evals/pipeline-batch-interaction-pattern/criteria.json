@@ -1,0 +1,61 @@
+{
+  "context": "Tests whether the agent uses the virtui pipeline command for multi-step interactions, uses --json flag for machine-readable output, follows the daemon check/start workflow, and properly cleans up sessions.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "Uses --json flag",
+      "max_score": 10,
+      "description": "All virtui commands that return data (run, exec, pipeline, screenshot) include the --json or -j flag"
+    },
+    {
+      "name": "Daemon status check",
+      "max_score": 8,
+      "description": "Script runs `virtui daemon status` before starting any session"
+    },
+    {
+      "name": "Daemon start if needed",
+      "max_score": 7,
+      "description": "Script starts the daemon with `virtui daemon start` if it is not already running"
+    },
+    {
+      "name": "Pipeline used for interaction",
+      "max_score": 15,
+      "description": "The multi-step REPL interaction (typing commands, pressing Enter, waiting for output) uses `virtui pipeline` with a JSON step list rather than standalone exec calls"
+    },
+    {
+      "name": "Type + press Enter steps",
+      "max_score": 15,
+      "description": "The pipeline uses explicit `type` step followed by `press Enter` step (not a single exec step) to send REPL input lines"
+    },
+    {
+      "name": "Wait condition in pipeline",
+      "max_score": 10,
+      "description": "At least one pipeline step includes a `wait` condition (e.g. waiting for the REPL prompt `>>>` or expected output text) rather than relying solely on sleeps"
+    },
+    {
+      "name": "Session ID captured",
+      "max_score": 8,
+      "description": "The session_id returned by `virtui run` is captured and reused in subsequent commands (not hardcoded)"
+    },
+    {
+      "name": "Screenshot taken",
+      "max_score": 7,
+      "description": "Script takes a screenshot (virtui screenshot) to capture final screen content"
+    },
+    {
+      "name": "Session killed",
+      "max_score": 10,
+      "description": "Script runs `virtui kill <session_id>` after interaction is complete"
+    },
+    {
+      "name": "Daemon stopped",
+      "max_score": 5,
+      "description": "Script runs `virtui daemon stop` at the end of all automation"
+    },
+    {
+      "name": "Output captured to file",
+      "max_score": 5,
+      "description": "session_output.txt is written and contains screen text from the Python REPL showing the result"
+    }
+  ]
+}

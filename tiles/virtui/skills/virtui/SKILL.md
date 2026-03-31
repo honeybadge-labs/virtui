@@ -1,0 +1,215 @@
+---
+name: virtui
+description: |
+  Use when an AI agent needs to programmatically drive, test, or record a terminal (TUI) application.
+  Launches programs via pseudo-TTY, captures screen output, sends keystrokes and control sequences,
+  and records sessions to asciicast format. Trigger on: launching interactive terminal programs,
+  automating CLI workflows, testing TUI apps, recording terminal sessions, sending keystrokes to
+  running programs, waiting for terminal output, or any task that requires controlling a terminal
+  application non-interactively.
+---
+
+# virtui — TUI Automation for AI Agents
+
+## Prerequisites
+
+Before using virtui, ensure it is installed and the daemon is running.
+
+### Check / Install
+
+```bash
+# Check if virtui is available
+virtui version
+```
+
+If not installed, install via Homebrew:
+```bash
+brew install honeybadge-labs/tap/virtui
+```
+
+### Start the Daemon
+
+The daemon must be running before any session commands. Always check first:
+
+```bash
+virtui daemon status
+```
+
+If not running:
+```bash
+virtui daemon start
+```
+
+The daemon manages sessions over a Unix socket at `~/.virtui/daemon.sock`.
+
+## Core Workflow
+
+The typical workflow is: **start daemon → run session → interact → screenshot → kill session**.
+
+### 1. Launch a Session
+
+```bash
+virtui --json run <command...>
+```
+
+This returns a `session_id` you'll use for all subsequent commands. Common options:
+
+| Flag | Default | Purpose |
+|------|---------|---------|
+| `--cols` | `80` | Terminal width |
+| `--rows` | `24` | Terminal height |
+| `--dir` | cwd | Working directory |
+| `-e KEY=VAL` | | Environment variables (repeatable) |
+| `--record` | off | Record session as asciicast v2 |
+
+Example:
+```bash
+virtui --json run --cols 120 --rows 40 bash
+# → {"session_id":"a1b2c3d4","pid":1234,"recording_path":""}
+```
+
+### 2. Execute Commands
+
+`exec` is the primary interaction command. It types input, presses Enter, and optionally waits
+for a screen condition before returning.
+
+> **Claude Code note:** The Bash tool strips trailing newlines from command arguments, so
+> `exec` may not actually send Enter when called from Claude Code. Prefer using `type` + `press Enter`
+> as separate steps (or use a `pipeline`) to guarantee Enter is sent. See the
+> [Pipeline section](#pipeline-batch-operations) for a concrete example.
+
+```bash
+virtui --json exec <session_id> "<input>" [wait flags]
+```
+
+**Wait strategies** (use exactly one, or none for fire-and-forget):
+
+| Flag | When to use |
+|------|------------|
+| `--wait "text"` | Wait for specific text to appear on screen |
+| `--wait-stable` | Wait for screen to stop changing (500ms of no updates) |
+| `--wait-gone "text"` | Wait for text to disappear (e.g., a loading spinner) |
+| `--wait-regex "pattern"` | Wait for a regex match on screen |
+| `--timeout <ms>` | Override default 30s timeout (use with any wait flag) |
+
+Examples:
+```bash
+# Run a command and wait for its output
+virtui --json exec $SID "echo hello" --wait "hello"
+
+# Run a build and wait for it to finish
+virtui --json exec $SID "make build" --wait-stable --timeout 60000
+
+# Wait for a loading indicator to disappear
+virtui --json exec $SID "npm install" --wait-gone "resolving" --timeout 120000
+```
+
+### 3. Take Screenshots
+
+Read the current screen contents at any time:
+
+```bash
+virtui --json screenshot <session_id>
+```
+
+Returns `screen_text`, `screen_hash`, cursor position, and terminal dimensions. Use `screen_hash`
+for cheap change detection without comparing full screen text.
+
+### 4. Send Keystrokes
+
+For interactive TUI applications (menus, editors, prompts), use `press` and `type`:
+
+```bash
+# Send special keys
+virtui press <session_id> Enter
+virtui press <session_id> Ctrl+C
+virtui press <session_id> ArrowDown --repeat 5
+virtui press <session_id> Escape q      # multiple keys in sequence
+
+# Type text without pressing Enter (for search fields, partial input)
+virtui type <session_id> "search query"
+```
+
+See `references/keys-and-errors.md` for the full list of available key names and error codes.
+
+### 5. Wait for Conditions
+
+Wait independently of exec (useful after press/type or for polling):
+
+```bash
+virtui --json wait <session_id> --text "Ready"
+virtui --json wait <session_id> --stable
+virtui --json wait <session_id> --gone "Loading..."
+virtui --json wait <session_id> --regex "v\d+\.\d+"
+```
+
+### 6. Clean Up
+
+Always kill sessions when done:
+
+```bash
+virtui kill <session_id>
+```
+
+List active sessions:
+```bash
+virtui --json sessions show
+```
+
+## Pipeline (Batch Operations)
+
+For complex multi-step interactions, use `pipeline` to send a batch of steps in one call.
+
+> **Recommended for Claude Code:** Because `exec` relies on Enter being sent and Claude Code's
+> Bash tool can swallow trailing newlines, the most reliable pattern from Claude Code is to use
+> a pipeline with explicit `type` + `press Enter` steps instead of `exec`.
+
+### Example: Running a command reliably from Claude Code
+
+```bash
+echo '{"steps":[
+  {"type":{"text":"echo hello world"}},
+  {"press":{"keys":["Enter"]}},
+  {"wait":{"condition":{"text":"hello world"},"timeout_ms":5000}},
+  {"screenshot":{}}
+],"stop_on_error":true}' | virtui --json pipeline $SID
+```
+
+This is equivalent to `virtui exec $SID "echo hello world" --wait "hello world"` but
+guarantees Enter is actually sent regardless of how the shell tool handles newlines.
+
+### General pipeline example
+
+```bash
+echo '{"steps":[
+  {"exec":{"input":"ls","wait":{"text":"README"}}},
+  {"sleep":{"duration_ms":500}},
+  {"screenshot":{}},
+  {"press":{"keys":["Ctrl+C"]}}
+],"stop_on_error":true}' | virtui --json pipeline <session_id>
+```
+
+Step types: `exec`, `press`, `type`, `wait`, `screenshot`, `sleep`.
+
+## Recording Sessions
+
+Record sessions as asciicast v2 (playable with `asciinema play`):
+
+```bash
+virtui --json run --record bash
+# or with a custom path:
+virtui --json run --record --record-path ./demo.cast bash
+```
+
+Recording stops when the session is killed or the process exits.
+
+## Important Patterns
+
+- Always pass `--json` (or `-j`) for machine-readable output with `session_id`, `screen_text`, `screen_hash`, etc.
+- Use `screen_hash` (SHA-256) for cheap change detection without comparing full screen text.
+- The default wait timeout is 30s. For long-running ops, increase it: `--timeout 120000`.
+- If a wait times out, take a `screenshot` to see current state and decide how to proceed.
+- Errors include `code`, `category`, `message`, `retryable`, `suggestion` — check `retryable` before retrying.
+- When done with all automation, run `virtui daemon stop`.
+
+See `references/keys-and-errors.md` for error codes and key names.

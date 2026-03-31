@@ -1,0 +1,61 @@
+{
+  "context": "Tests whether the agent uses the --record and --record-path flags correctly to produce an asciicast v2 recording, uses --json flag, follows daemon lifecycle, and properly kills the session to finalize the recording.",
+  "type": "weighted_checklist",
+  "checklist": [
+    {
+      "name": "Uses --json flag",
+      "max_score": 8,
+      "description": "The `virtui run` command includes --json or -j flag"
+    },
+    {
+      "name": "Daemon status check",
+      "max_score": 8,
+      "description": "Script checks daemon status with `virtui daemon status` before creating any session"
+    },
+    {
+      "name": "Daemon started if needed",
+      "max_score": 7,
+      "description": "Script conditionally starts the daemon with `virtui daemon start` if not running"
+    },
+    {
+      "name": "--record flag used",
+      "max_score": 15,
+      "description": "The `virtui run` command includes the `--record` flag to enable session recording"
+    },
+    {
+      "name": "--record-path set correctly",
+      "max_score": 15,
+      "description": "The `--record-path` flag is used and set to `./demo/onboarding.cast` (or equivalent relative path that results in that location)"
+    },
+    {
+      "name": "Output directory created",
+      "max_score": 7,
+      "description": "Script creates the `demo/` directory before running virtui (e.g. via `mkdir -p demo`)"
+    },
+    {
+      "name": "Session ID captured",
+      "max_score": 8,
+      "description": "The session_id from the `run` command is captured and used in subsequent commands"
+    },
+    {
+      "name": "Session killed to finalize",
+      "max_score": 15,
+      "description": "Script kills the session with `virtui kill <session_id>` — required to finalize/stop the recording"
+    },
+    {
+      "name": "Cast file exists",
+      "max_score": 7,
+      "description": "The file `demo/onboarding.cast` exists after the script runs"
+    },
+    {
+      "name": "Daemon stopped",
+      "max_score": 5,
+      "description": "Script runs `virtui daemon stop` after all work is complete"
+    },
+    {
+      "name": "Pipeline or type+press used",
+      "max_score": 5,
+      "description": "Interaction commands use pipeline or type+press steps rather than bare exec (to ensure Enter is sent reliably)"
+    }
+  ]
+}
