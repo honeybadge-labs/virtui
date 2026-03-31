@@ -1,3 +1,7 @@
+<p align="center">
+  <img src=".github/banner.png" alt="virtui banner" />
+</p>
+
 # virtui
 
 TUI automation for AI agents. A daemon + CLI that lets AI agents programmatically
