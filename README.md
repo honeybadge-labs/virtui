@@ -7,6 +7,8 @@
 TUI automation for AI agents. A daemon + CLI that lets AI agents programmatically
 drive terminal applications via a gRPC API over Unix domain sockets.
 
+> "It's like Playwright, for TUI apps"
+
 ## Use Cases
 
 - **Proof of work** — Have agents showcase the feature they built or bug they fixed, and submit recordings alongside their PRs for easy reviews.
