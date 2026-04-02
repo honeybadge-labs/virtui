@@ -535,7 +535,7 @@ func waitForReady(socketPath string, timeout time.Duration) bool {
 	for time.Now().Before(deadline) {
 		conn, err := net.DialTimeout("unix", socketPath, 200*time.Millisecond)
 		if err == nil {
-			conn.Close()
+			_ = conn.Close()
 			return true
 		}
 		time.Sleep(100 * time.Millisecond)
