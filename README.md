@@ -64,12 +64,12 @@ virtui screenshot a1b2c3d4
 
 # 5. Clean up
 virtui kill a1b2c3d4
-pkill -f 'virtui.*daemon.*foreground'   # daemon stop is currently a no-op
+virtui daemon stop
 ```
 
 ## JSON Mode
 
-Most commands support `--json` (`-j`) for machine-readable output (exceptions: `daemon start` and `daemon stop` always print plain text):
+All commands support `--json` (`-j`) for machine-readable output:
 
 ```bash
 virtui --json run bash
@@ -116,8 +116,10 @@ change detection without transferring screen contents.
 Start the daemon process.
 
 ```bash
-virtui daemon start                # background (detached)
-virtui daemon start --foreground   # foreground (blocks)
+virtui daemon start                    # background (detached)
+virtui daemon start --foreground       # foreground (blocks)
+virtui --json daemon start             # {"pid":1234,"socket":"/Users/you/.virtui/daemon.sock"}
+virtui --json daemon start --foreground  # {"socket":"/Users/you/.virtui/daemon.sock"}
 ```
 
 | Flag           | Default | Description                                |
@@ -126,12 +128,12 @@ virtui daemon start --foreground   # foreground (blocks)
 
 ### `virtui daemon stop`
 
-> **Known issue:** `daemon stop` currently prints "daemon stopped" but does **not** actually
-> terminate the daemon process. To stop the daemon, run
-> `pkill -f 'virtui.*daemon.*foreground'` or kill the PID printed by `daemon start`.
+Stop the daemon gracefully. Sends a shutdown request and waits for the daemon to
+exit before returning.
 
 ```bash
 virtui daemon stop
+virtui --json daemon stop   # {"ok":true}
 ```
 
 ### `virtui daemon status`

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -723,5 +724,156 @@ func TestIntegration_PressRepeat(t *testing.T) {
 	}
 	if !strings.Contains(ss.ScreenText, "aaaaa") {
 		t.Errorf("screen should contain 'aaaaa' after 5x press, got:\n%s", ss.ScreenText)
+	}
+}
+
+func TestIntegration_Shutdown(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	// Use /tmp directly to keep socket path short (macOS 104 char limit).
+	dir, err := os.MkdirTemp("/tmp", "virtui-shutdown-")
+	if err != nil {
+		t.Fatalf("mktemp: %v", err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
+	socketPath := filepath.Join(dir, "t.sock")
+
+	srv := daemon.NewServer(socketPath)
+	go func() {
+		_ = srv.Start()
+	}()
+
+	// Wait for socket to be available
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if _, err := os.Stat(socketPath); err == nil {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	conn, err := grpc.NewClient("unix://"+socketPath,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
+			return net.DialTimeout("unix", socketPath, 5*time.Second)
+		}),
+	)
+	if err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	defer conn.Close()
+
+	client := virtuipb.NewVirtuiServiceClient(conn)
+	ctx := context.Background()
+
+	// Create a session to verify it gets cleaned up
+	runResp, err := client.Run(ctx, &virtuipb.RunRequest{
+		Command: []string{"bash"},
+		Cols:    80,
+		Rows:    24,
+	})
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if runResp.SessionId == "" {
+		t.Fatal("expected non-empty session ID")
+	}
+
+	// Call Shutdown
+	_, err = client.Shutdown(ctx, &virtuipb.ShutdownRequest{})
+	if err != nil {
+		t.Fatalf("Shutdown: %v", err)
+	}
+
+	// Wait for socket to be removed (server-side postcondition)
+	deadline = time.Now().Add(10 * time.Second)
+	for time.Now().Before(deadline) {
+		if _, err := os.Stat(socketPath); os.IsNotExist(err) {
+			return // success
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	t.Fatal("socket was not removed after Shutdown")
+}
+
+func TestIntegration_CLISmoke(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	// Build the binary
+	binDir := t.TempDir()
+	binPath := filepath.Join(binDir, "virtui")
+	cmd := exec.Command("go", "build", "-o", binPath, "./cmd/virtui")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("build failed: %v\n%s", err, out)
+	}
+
+	// Use a temp socket
+	sockDir, err := os.MkdirTemp("/tmp", "virtui-cli-smoke-")
+	if err != nil {
+		t.Fatalf("mktemp: %v", err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(sockDir) })
+	sock := filepath.Join(sockDir, "d.sock")
+
+	run := func(args ...string) ([]byte, error) {
+		a := append([]string{"--json", "--socket", sock}, args...)
+		c := exec.Command(binPath, a...)
+		return c.CombinedOutput()
+	}
+
+	// daemon start (background)
+	out, err := run("daemon", "start")
+	if err != nil {
+		t.Fatalf("daemon start: %v\n%s", err, out)
+	}
+	var startResult map[string]any
+	if err := json.Unmarshal(out, &startResult); err != nil {
+		t.Fatalf("parse start output: %v\n%s", err, out)
+	}
+	if startResult["socket"] == nil {
+		t.Errorf("expected socket in start output, got: %s", out)
+	}
+
+	// daemon status → running
+	out, err = run("daemon", "status")
+	if err != nil {
+		t.Fatalf("daemon status: %v\n%s", err, out)
+	}
+	var statusResult map[string]any
+	if err := json.Unmarshal(out, &statusResult); err != nil {
+		t.Fatalf("parse status output: %v\n%s", err, out)
+	}
+	if statusResult["running"] != true {
+		t.Errorf("expected running=true, got: %s", out)
+	}
+
+	// daemon stop
+	out, err = run("daemon", "stop")
+	if err != nil {
+		t.Fatalf("daemon stop: %v\n%s", err, out)
+	}
+	var stopResult map[string]any
+	if err := json.Unmarshal(out, &stopResult); err != nil {
+		t.Fatalf("parse stop output: %v\n%s", err, out)
+	}
+	if stopResult["ok"] != true {
+		t.Errorf("expected ok=true, got: %s", out)
+	}
+
+	// daemon status → not running
+	out, err = run("daemon", "status")
+	if err != nil {
+		t.Fatalf("daemon status after stop: %v\n%s", err, out)
+	}
+	var statusResult2 map[string]any
+	if err := json.Unmarshal(out, &statusResult2); err != nil {
+		t.Fatalf("parse status output: %v\n%s", err, out)
+	}
+	if statusResult2["running"] != false {
+		t.Errorf("expected running=false after stop, got: %s", out)
 	}
 }

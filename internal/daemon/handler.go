@@ -15,14 +15,22 @@ type Handler struct {
 	virtuipb.UnimplementedVirtuiServiceServer
 	manager  *session.Manager
 	executor *pipeline.Executor
+	stopFn   func()
 }
 
 // NewHandler creates a new gRPC handler.
-func NewHandler(mgr *session.Manager) *Handler {
+func NewHandler(mgr *session.Manager, stopFn func()) *Handler {
 	return &Handler{
 		manager:  mgr,
 		executor: pipeline.NewExecutor(),
+		stopFn:   stopFn,
 	}
+}
+
+// Shutdown initiates a graceful server shutdown.
+func (h *Handler) Shutdown(_ context.Context, _ *virtuipb.ShutdownRequest) (*virtuipb.ShutdownResponse, error) {
+	go h.stopFn()
+	return &virtuipb.ShutdownResponse{}, nil
 }
 
 // getRunning fetches a session and verifies the process is still alive.

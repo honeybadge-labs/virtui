@@ -30,6 +30,7 @@ const (
 	VirtuiService_Wait_FullMethodName       = "/virtui.v1.VirtuiService/Wait"
 	VirtuiService_Pipeline_FullMethodName   = "/virtui.v1.VirtuiService/Pipeline"
 	VirtuiService_Watch_FullMethodName      = "/virtui.v1.VirtuiService/Watch"
+	VirtuiService_Shutdown_FullMethodName   = "/virtui.v1.VirtuiService/Shutdown"
 )
 
 // VirtuiServiceClient is the client API for VirtuiService service.
@@ -47,6 +48,7 @@ type VirtuiServiceClient interface {
 	Wait(ctx context.Context, in *WaitRequest, opts ...grpc.CallOption) (*WaitResponse, error)
 	Pipeline(ctx context.Context, in *PipelineRequest, opts ...grpc.CallOption) (*PipelineResponse, error)
 	Watch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WatchEvent], error)
+	Shutdown(ctx context.Context, in *ShutdownRequest, opts ...grpc.CallOption) (*ShutdownResponse, error)
 }
 
 type virtuiServiceClient struct {
@@ -176,6 +178,16 @@ func (c *virtuiServiceClient) Watch(ctx context.Context, in *WatchRequest, opts 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type VirtuiService_WatchClient = grpc.ServerStreamingClient[WatchEvent]
 
+func (c *virtuiServiceClient) Shutdown(ctx context.Context, in *ShutdownRequest, opts ...grpc.CallOption) (*ShutdownResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ShutdownResponse)
+	err := c.cc.Invoke(ctx, VirtuiService_Shutdown_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // VirtuiServiceServer is the server API for VirtuiService service.
 // All implementations must embed UnimplementedVirtuiServiceServer
 // for forward compatibility.
@@ -191,6 +203,7 @@ type VirtuiServiceServer interface {
 	Wait(context.Context, *WaitRequest) (*WaitResponse, error)
 	Pipeline(context.Context, *PipelineRequest) (*PipelineResponse, error)
 	Watch(*WatchRequest, grpc.ServerStreamingServer[WatchEvent]) error
+	Shutdown(context.Context, *ShutdownRequest) (*ShutdownResponse, error)
 	mustEmbedUnimplementedVirtuiServiceServer()
 }
 
@@ -233,6 +246,9 @@ func (UnimplementedVirtuiServiceServer) Pipeline(context.Context, *PipelineReque
 }
 func (UnimplementedVirtuiServiceServer) Watch(*WatchRequest, grpc.ServerStreamingServer[WatchEvent]) error {
 	return status.Error(codes.Unimplemented, "method Watch not implemented")
+}
+func (UnimplementedVirtuiServiceServer) Shutdown(context.Context, *ShutdownRequest) (*ShutdownResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Shutdown not implemented")
 }
 func (UnimplementedVirtuiServiceServer) mustEmbedUnimplementedVirtuiServiceServer() {}
 func (UnimplementedVirtuiServiceServer) testEmbeddedByValue()                       {}
@@ -446,6 +462,24 @@ func _VirtuiService_Watch_Handler(srv interface{}, stream grpc.ServerStream) err
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type VirtuiService_WatchServer = grpc.ServerStreamingServer[WatchEvent]
 
+func _VirtuiService_Shutdown_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ShutdownRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VirtuiServiceServer).Shutdown(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VirtuiService_Shutdown_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VirtuiServiceServer).Shutdown(ctx, req.(*ShutdownRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // VirtuiService_ServiceDesc is the grpc.ServiceDesc for VirtuiService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -492,6 +526,10 @@ var VirtuiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Pipeline",
 			Handler:    _VirtuiService_Pipeline_Handler,
+		},
+		{
+			MethodName: "Shutdown",
+			Handler:    _VirtuiService_Shutdown_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

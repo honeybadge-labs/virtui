@@ -32,12 +32,14 @@ brew install honeybadge-labs/tap/virtui
 The daemon must be running before any session commands. Always check first:
 
 ```bash
-virtui daemon status
+virtui --json daemon status
+# → {"running":true,"socket":"..."} or {"running":false,"socket":"..."}
 ```
 
 If not running:
 ```bash
-virtui daemon start
+virtui --json daemon start
+# → {"pid":1234,"socket":"/Users/you/.virtui/daemon.sock"}
 ```
 
 The daemon manages sessions over a Unix socket at `~/.virtui/daemon.sock`.
@@ -257,14 +259,12 @@ Recording stops when the session is killed or the process exits.
 
 ## Important Patterns
 
-- Always pass `--json` (or `-j`) for machine-readable output with `session_id`, `screen_text`, `screen_hash`, etc. (Note: `daemon start` and `daemon stop` ignore `--json` and always print plain text.)
+- Always pass `--json` (or `-j`) for machine-readable output with `session_id`, `screen_text`, `screen_hash`, etc.
 - JSON output uses proto3 JSON encoding: `int64` fields (`elapsed_ms`, `created_at`) are serialized as strings.
 - Use `screen_hash` (SHA-256) for cheap change detection without comparing full screen text.
 - The default wait timeout is 30s. For long-running ops, increase it: `--timeout 120000`.
 - If a wait times out, take a `screenshot` to see current state and decide how to proceed.
 - Errors include `code`, `category`, `message`, `retryable`, `suggestion` — check `retryable` before retrying.
-- **`daemon stop` is currently a no-op.** It prints "daemon stopped" but does not actually terminate the daemon process. To stop the daemon, run `pkill -f 'virtui.*daemon.*foreground'` or kill the PID printed at startup.
-
 See [references/keys-and-errors.md](references/keys-and-errors.md) for error codes and key names.
 
 ## JSON Output Fields Reference
@@ -281,3 +281,6 @@ See [references/keys-and-errors.md](references/keys-and-errors.md) for error cod
 | `resize` | `ok` |
 | `pipeline` | `results[]`: `step_index`, `success`, `error_message`, `screenshot` (see [Pipeline output format](#pipeline-output-format)) |
 | `sessions` | `sessions[]`: `session_id`, `pid`, `command`, `cols`, `rows`, `running`, `exit_code`, `created_at`, `recording_path` |
+| `daemon start` | `pid`, `socket` (background) or `socket` (foreground) |
+| `daemon stop` | `ok`, optionally `message` |
+| `daemon status` | `running`, `socket` |
