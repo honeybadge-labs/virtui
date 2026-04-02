@@ -1942,6 +1942,78 @@ func (x *WatchEvent) GetExitCode() int32 {
 	return 0
 }
 
+type ShutdownRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ShutdownRequest) Reset() {
+	*x = ShutdownRequest{}
+	mi := &file_proto_virtui_v1_virtui_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ShutdownRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ShutdownRequest) ProtoMessage() {}
+
+func (x *ShutdownRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_virtui_v1_virtui_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ShutdownRequest.ProtoReflect.Descriptor instead.
+func (*ShutdownRequest) Descriptor() ([]byte, []int) {
+	return file_proto_virtui_v1_virtui_proto_rawDescGZIP(), []int{27}
+}
+
+type ShutdownResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ShutdownResponse) Reset() {
+	*x = ShutdownResponse{}
+	mi := &file_proto_virtui_v1_virtui_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ShutdownResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ShutdownResponse) ProtoMessage() {}
+
+func (x *ShutdownResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_virtui_v1_virtui_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ShutdownResponse.ProtoReflect.Descriptor instead.
+func (*ShutdownResponse) Descriptor() ([]byte, []int) {
+	return file_proto_virtui_v1_virtui_proto_rawDescGZIP(), []int{28}
+}
+
 type StructuredError struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
@@ -1956,7 +2028,7 @@ type StructuredError struct {
 
 func (x *StructuredError) Reset() {
 	*x = StructuredError{}
-	mi := &file_proto_virtui_v1_virtui_proto_msgTypes[27]
+	mi := &file_proto_virtui_v1_virtui_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1968,7 +2040,7 @@ func (x *StructuredError) String() string {
 func (*StructuredError) ProtoMessage() {}
 
 func (x *StructuredError) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_virtui_v1_virtui_proto_msgTypes[27]
+	mi := &file_proto_virtui_v1_virtui_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1981,7 +2053,7 @@ func (x *StructuredError) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StructuredError.ProtoReflect.Descriptor instead.
 func (*StructuredError) Descriptor() ([]byte, []int) {
-	return file_proto_virtui_v1_virtui_proto_rawDescGZIP(), []int{27}
+	return file_proto_virtui_v1_virtui_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *StructuredError) GetCode() string {
@@ -2187,7 +2259,9 @@ const file_proto_virtui_v1_virtui_proto_rawDesc = "" +
 	"screenText\x12\x1f\n" +
 	"\vscreen_hash\x18\x03 \x01(\tR\n" +
 	"screenHash\x12\x1b\n" +
-	"\texit_code\x18\x04 \x01(\x05R\bexitCode\"\xb2\x02\n" +
+	"\texit_code\x18\x04 \x01(\x05R\bexitCode\"\x11\n" +
+	"\x0fShutdownRequest\"\x12\n" +
+	"\x10ShutdownResponse\"\xb2\x02\n" +
 	"\x0fStructuredError\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\x124\n" +
 	"\bcategory\x18\x02 \x01(\x0e2\x18.virtui.v1.ErrorCategoryR\bcategory\x12\x18\n" +
@@ -2210,7 +2284,7 @@ const file_proto_virtui_v1_virtui_proto_rawDesc = "" +
 	"\x17ERROR_CATEGORY_TERMINAL\x10\x02\x12\x1a\n" +
 	"\x16ERROR_CATEGORY_TIMEOUT\x10\x03\x12\x1d\n" +
 	"\x19ERROR_CATEGORY_VALIDATION\x10\x04\x12\x19\n" +
-	"\x15ERROR_CATEGORY_DAEMON\x10\x052\xb4\x05\n" +
+	"\x15ERROR_CATEGORY_DAEMON\x10\x052\xf9\x05\n" +
 	"\rVirtuiService\x124\n" +
 	"\x03Run\x12\x15.virtui.v1.RunRequest\x1a\x16.virtui.v1.RunResponse\x127\n" +
 	"\x04Kill\x12\x16.virtui.v1.KillRequest\x1a\x17.virtui.v1.KillResponse\x12C\n" +
@@ -2223,7 +2297,8 @@ const file_proto_virtui_v1_virtui_proto_rawDesc = "" +
 	"\x04Type\x12\x16.virtui.v1.TypeRequest\x1a\x17.virtui.v1.TypeResponse\x127\n" +
 	"\x04Wait\x12\x16.virtui.v1.WaitRequest\x1a\x17.virtui.v1.WaitResponse\x12C\n" +
 	"\bPipeline\x12\x1a.virtui.v1.PipelineRequest\x1a\x1b.virtui.v1.PipelineResponse\x129\n" +
-	"\x05Watch\x12\x17.virtui.v1.WatchRequest\x1a\x15.virtui.v1.WatchEvent0\x01B<Z:github.com/honeybadge-labs/virtui/proto/virtui/v1;virtuipbb\x06proto3"
+	"\x05Watch\x12\x17.virtui.v1.WatchRequest\x1a\x15.virtui.v1.WatchEvent0\x01\x12C\n" +
+	"\bShutdown\x12\x1a.virtui.v1.ShutdownRequest\x1a\x1b.virtui.v1.ShutdownResponseB<Z:github.com/honeybadge-labs/virtui/proto/virtui/v1;virtuipbb\x06proto3"
 
 var (
 	file_proto_virtui_v1_virtui_proto_rawDescOnce sync.Once
@@ -2238,7 +2313,7 @@ func file_proto_virtui_v1_virtui_proto_rawDescGZIP() []byte {
 }
 
 var file_proto_virtui_v1_virtui_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_proto_virtui_v1_virtui_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
+var file_proto_virtui_v1_virtui_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_proto_virtui_v1_virtui_proto_goTypes = []any{
 	(WatchEventType)(0),        // 0: virtui.v1.WatchEventType
 	(ErrorCategory)(0),         // 1: virtui.v1.ErrorCategory
@@ -2269,8 +2344,10 @@ var file_proto_virtui_v1_virtui_proto_goTypes = []any{
 	(*PipelineStepResult)(nil), // 26: virtui.v1.PipelineStepResult
 	(*WatchRequest)(nil),       // 27: virtui.v1.WatchRequest
 	(*WatchEvent)(nil),         // 28: virtui.v1.WatchEvent
-	(*StructuredError)(nil),    // 29: virtui.v1.StructuredError
-	nil,                        // 30: virtui.v1.StructuredError.ContextEntry
+	(*ShutdownRequest)(nil),    // 29: virtui.v1.ShutdownRequest
+	(*ShutdownResponse)(nil),   // 30: virtui.v1.ShutdownResponse
+	(*StructuredError)(nil),    // 31: virtui.v1.StructuredError
+	nil,                        // 32: virtui.v1.StructuredError.ContextEntry
 }
 var file_proto_virtui_v1_virtui_proto_depIdxs = []int32{
 	8,  // 0: virtui.v1.SessionsResponse.sessions:type_name -> virtui.v1.SessionInfo
@@ -2291,7 +2368,7 @@ var file_proto_virtui_v1_virtui_proto_depIdxs = []int32{
 	14, // 15: virtui.v1.PipelineStepResult.screenshot:type_name -> virtui.v1.ScreenshotResponse
 	0,  // 16: virtui.v1.WatchEvent.type:type_name -> virtui.v1.WatchEventType
 	1,  // 17: virtui.v1.StructuredError.category:type_name -> virtui.v1.ErrorCategory
-	30, // 18: virtui.v1.StructuredError.context:type_name -> virtui.v1.StructuredError.ContextEntry
+	32, // 18: virtui.v1.StructuredError.context:type_name -> virtui.v1.StructuredError.ContextEntry
 	2,  // 19: virtui.v1.VirtuiService.Run:input_type -> virtui.v1.RunRequest
 	4,  // 20: virtui.v1.VirtuiService.Kill:input_type -> virtui.v1.KillRequest
 	6,  // 21: virtui.v1.VirtuiService.Sessions:input_type -> virtui.v1.SessionsRequest
@@ -2303,19 +2380,21 @@ var file_proto_virtui_v1_virtui_proto_depIdxs = []int32{
 	20, // 27: virtui.v1.VirtuiService.Wait:input_type -> virtui.v1.WaitRequest
 	22, // 28: virtui.v1.VirtuiService.Pipeline:input_type -> virtui.v1.PipelineRequest
 	27, // 29: virtui.v1.VirtuiService.Watch:input_type -> virtui.v1.WatchRequest
-	3,  // 30: virtui.v1.VirtuiService.Run:output_type -> virtui.v1.RunResponse
-	5,  // 31: virtui.v1.VirtuiService.Kill:output_type -> virtui.v1.KillResponse
-	7,  // 32: virtui.v1.VirtuiService.Sessions:output_type -> virtui.v1.SessionsResponse
-	10, // 33: virtui.v1.VirtuiService.Resize:output_type -> virtui.v1.ResizeResponse
-	12, // 34: virtui.v1.VirtuiService.Exec:output_type -> virtui.v1.ExecResponse
-	14, // 35: virtui.v1.VirtuiService.Screenshot:output_type -> virtui.v1.ScreenshotResponse
-	16, // 36: virtui.v1.VirtuiService.Press:output_type -> virtui.v1.PressResponse
-	18, // 37: virtui.v1.VirtuiService.Type:output_type -> virtui.v1.TypeResponse
-	21, // 38: virtui.v1.VirtuiService.Wait:output_type -> virtui.v1.WaitResponse
-	25, // 39: virtui.v1.VirtuiService.Pipeline:output_type -> virtui.v1.PipelineResponse
-	28, // 40: virtui.v1.VirtuiService.Watch:output_type -> virtui.v1.WatchEvent
-	30, // [30:41] is the sub-list for method output_type
-	19, // [19:30] is the sub-list for method input_type
+	29, // 30: virtui.v1.VirtuiService.Shutdown:input_type -> virtui.v1.ShutdownRequest
+	3,  // 31: virtui.v1.VirtuiService.Run:output_type -> virtui.v1.RunResponse
+	5,  // 32: virtui.v1.VirtuiService.Kill:output_type -> virtui.v1.KillResponse
+	7,  // 33: virtui.v1.VirtuiService.Sessions:output_type -> virtui.v1.SessionsResponse
+	10, // 34: virtui.v1.VirtuiService.Resize:output_type -> virtui.v1.ResizeResponse
+	12, // 35: virtui.v1.VirtuiService.Exec:output_type -> virtui.v1.ExecResponse
+	14, // 36: virtui.v1.VirtuiService.Screenshot:output_type -> virtui.v1.ScreenshotResponse
+	16, // 37: virtui.v1.VirtuiService.Press:output_type -> virtui.v1.PressResponse
+	18, // 38: virtui.v1.VirtuiService.Type:output_type -> virtui.v1.TypeResponse
+	21, // 39: virtui.v1.VirtuiService.Wait:output_type -> virtui.v1.WaitResponse
+	25, // 40: virtui.v1.VirtuiService.Pipeline:output_type -> virtui.v1.PipelineResponse
+	28, // 41: virtui.v1.VirtuiService.Watch:output_type -> virtui.v1.WatchEvent
+	30, // 42: virtui.v1.VirtuiService.Shutdown:output_type -> virtui.v1.ShutdownResponse
+	31, // [31:43] is the sub-list for method output_type
+	19, // [19:31] is the sub-list for method input_type
 	19, // [19:19] is the sub-list for extension type_name
 	19, // [19:19] is the sub-list for extension extendee
 	0,  // [0:19] is the sub-list for field type_name
@@ -2353,7 +2432,7 @@ func file_proto_virtui_v1_virtui_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_virtui_v1_virtui_proto_rawDesc), len(file_proto_virtui_v1_virtui_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   29,
+			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

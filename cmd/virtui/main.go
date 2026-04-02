@@ -4,16 +4,20 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/alecthomas/kong"
 	"github.com/honeybadge-labs/virtui/internal/client"
 	"github.com/honeybadge-labs/virtui/internal/daemon"
 	virtuipb "github.com/honeybadge-labs/virtui/proto/virtui/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -391,12 +395,12 @@ func (cmd *PipelineCmd) Run(cli *CLI) error {
 
 func (cmd *DaemonStartCmd) Run(cli *CLI) error {
 	if cmd.Foreground {
-		return runDaemonForeground(cli.Socket)
+		return runDaemonForeground(cli.Socket, cli.JSON)
 	}
-	return runDaemonBackground(cli.Socket)
+	return runDaemonBackground(cli.Socket, cli.JSON)
 }
 
-func runDaemonForeground(socketPath string) error {
+func runDaemonForeground(socketPath string, jsonMode bool) error {
 	srv := daemon.NewServer(socketPath)
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
@@ -404,11 +408,19 @@ func runDaemonForeground(socketPath string) error {
 		<-sigCh
 		srv.Stop()
 	}()
-	fmt.Fprintf(os.Stderr, "virtui daemon listening on %s\n", socketPath)
-	return srv.Start()
+	if err := srv.Listen(); err != nil {
+		return err
+	}
+	// Output AFTER socket is bound — safe to report ready
+	if jsonMode {
+		outputJSON(map[string]any{"socket": socketPath})
+	} else {
+		fmt.Fprintf(os.Stderr, "virtui daemon listening on %s\n", socketPath)
+	}
+	return srv.Serve()
 }
 
-func runDaemonBackground(socketPath string) error {
+func runDaemonBackground(socketPath string, jsonMode bool) error {
 	exe, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("find executable: %w", err)
@@ -436,9 +448,23 @@ func runDaemonBackground(socketPath string) error {
 		return fmt.Errorf("start daemon: %w", err)
 	}
 	pid := proc.Pid
-	_ = proc.Release()
 	_ = logFile.Close()
-	fmt.Fprintf(os.Stderr, "daemon started (pid %d), socket: %s\n", pid, socketPath)
+
+	// Wait for socket to become reachable before releasing the process handle.
+	// If readiness times out, kill the orphaned child so callers don't get a
+	// "failed start" while a daemon is still running in the background.
+	if !waitForReady(socketPath, 5*time.Second) {
+		_ = proc.Kill()
+		_, _ = proc.Wait()
+		return fmt.Errorf("daemon process started (pid %d) but not reachable; check %s",
+			pid, logPath)
+	}
+	_ = proc.Release()
+	if jsonMode {
+		outputJSON(map[string]any{"pid": pid, "socket": socketPath})
+	} else {
+		fmt.Fprintf(os.Stderr, "daemon started (pid %d), socket: %s\n", pid, socketPath)
+	}
 	return nil
 }
 
@@ -447,14 +473,40 @@ func (cmd *DaemonStopCmd) Run(cli *CLI) error {
 	if err != nil {
 		// If we can't connect, try to remove the socket file
 		_ = os.Remove(cli.Socket)
-		fmt.Fprintln(os.Stderr, "daemon not running (cleaned up socket)")
+		if cli.JSON {
+			outputJSON(map[string]any{"ok": true, "message": "daemon not running"})
+		} else {
+			fmt.Fprintln(os.Stderr, "daemon not running (cleaned up socket)")
+		}
 		return nil
 	}
-	_ = c.Close()
-	// The daemon is running. We signal it by removing the socket which
-	// won't actually stop it. For a clean stop, we'd need a Stop RPC.
-	// For now, find and kill the process listening on the socket.
-	fmt.Fprintln(os.Stderr, "daemon stopped")
+	defer c.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err = c.Shutdown(ctx, &virtuipb.ShutdownRequest{})
+	if err != nil {
+		st, _ := status.FromError(err)
+		switch st.Code() {
+		case codes.Unavailable:
+			// Server died mid-RPC — already stopping
+		case codes.Unimplemented:
+			return fmt.Errorf("daemon does not support graceful shutdown (running old version); kill it manually or upgrade")
+		default:
+			return fmt.Errorf("shutdown: %w", err)
+		}
+	}
+
+	// Wait for daemon to actually stop
+	if !waitForStop(cli.Socket, 10*time.Second) {
+		return fmt.Errorf("shutdown initiated but daemon did not stop within 10s")
+	}
+
+	if cli.JSON {
+		outputJSON(map[string]any{"ok": true})
+	} else {
+		fmt.Fprintln(os.Stderr, "daemon stopped")
+	}
 	return nil
 }
 
@@ -475,4 +527,33 @@ func (cmd *DaemonStatusCmd) Run(cli *CLI) error {
 		fmt.Printf("daemon: running (socket: %s)\n", cli.Socket)
 	}
 	return nil
+}
+
+// waitForReady polls until the Unix socket accepts connections or times out.
+func waitForReady(socketPath string, timeout time.Duration) bool {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		conn, err := net.DialTimeout("unix", socketPath, 200*time.Millisecond)
+		if err == nil {
+			conn.Close()
+			return true
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return false
+}
+
+// waitForStop polls until the socket file is removed, which is the last action
+// in Server.Stop() — after GracefulStop/force-stop and all in-flight RPCs have
+// drained. Checking file removal rather than connection refusal avoids reporting
+// success during the GracefulStop drain window.
+func waitForStop(socketPath string, timeout time.Duration) bool {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if _, err := os.Stat(socketPath); os.IsNotExist(err) {
+			return true
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return false
 }

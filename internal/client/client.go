@@ -103,3 +103,8 @@ func (c *Client) Pipeline(ctx context.Context, req *virtuipb.PipelineRequest) (*
 func (c *Client) Watch(ctx context.Context, req *virtuipb.WatchRequest) (virtuipb.VirtuiService_WatchClient, error) {
 	return c.service.Watch(ctx, req)
 }
+
+// Shutdown requests the daemon to shut down gracefully.
+func (c *Client) Shutdown(ctx context.Context, req *virtuipb.ShutdownRequest) (*virtuipb.ShutdownResponse, error) {
+	return c.service.Shutdown(ctx, req)
+}

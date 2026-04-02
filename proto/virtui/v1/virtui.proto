@@ -16,6 +16,7 @@ service VirtuiService {
   rpc Wait(WaitRequest) returns (WaitResponse);
   rpc Pipeline(PipelineRequest) returns (PipelineResponse);
   rpc Watch(WatchRequest) returns (stream WatchEvent);
+  rpc Shutdown(ShutdownRequest) returns (ShutdownResponse);
 }
 
 // --- Run ---
@@ -215,6 +216,12 @@ enum WatchEventType {
   WATCH_EVENT_TYPE_SCREEN_CHANGED = 1;
   WATCH_EVENT_TYPE_EXITED = 2;
 }
+
+// --- Shutdown ---
+
+message ShutdownRequest {}
+
+message ShutdownResponse {}
 
 // --- Structured Error ---
 
