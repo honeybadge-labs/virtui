@@ -56,6 +56,8 @@ func (s *Server) Listen() error {
 	if err != nil {
 		return fmt.Errorf("listen: %w", err)
 	}
+	// Wrap the raw listener so only same-UID connections are accepted.
+	authLis := newAuthListener(lis)
 
 	s.mu.Lock()
 	if s.stopped {
@@ -65,7 +67,7 @@ func (s *Server) Listen() error {
 		_ = os.Remove(s.socketPath)
 		return fmt.Errorf("server stopped before listen completed")
 	}
-	s.listener = lis
+	s.listener = authLis
 	s.mu.Unlock()
 	return nil
 }

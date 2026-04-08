@@ -8,12 +8,17 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
 
+	dockercontainer "github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/mount"
 	"github.com/honeybadge-labs/virtui/internal/daemon"
 	virtuipb "github.com/honeybadge-labs/virtui/proto/virtui/v1"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -621,11 +626,9 @@ func TestIntegration_Pipeline(t *testing.T) {
 	}
 
 	// The screenshot step (index 2) should have captured pipeline-step-1
-	ssResult := resp.Results[2].GetScreenshot()
-	if ssResult == nil {
+	if ssResult := resp.Results[2].GetScreenshot(); ssResult == nil {
 		t.Fatal("expected screenshot result at step 2")
-	}
-	if !strings.Contains(ssResult.ScreenText, "pipeline-step-1") {
+	} else if !strings.Contains(ssResult.ScreenText, "pipeline-step-1") {
 		t.Errorf("screenshot should contain 'pipeline-step-1', got:\n%s", ssResult.ScreenText)
 	}
 }
@@ -688,11 +691,9 @@ func TestIntegration_PipelineSkillExample(t *testing.T) {
 	}
 
 	// The screenshot at step 3 should contain our echoed text.
-	ssResult := resp.Results[3].GetScreenshot()
-	if ssResult == nil {
+	if ssResult := resp.Results[3].GetScreenshot(); ssResult == nil {
 		t.Fatal("expected screenshot result at step 3")
-	}
-	if !strings.Contains(ssResult.ScreenText, "hello world") {
+	} else if !strings.Contains(ssResult.ScreenText, "hello world") {
 		t.Errorf("screenshot should contain 'hello world', got:\n%s", ssResult.ScreenText)
 	}
 }
@@ -724,6 +725,165 @@ func TestIntegration_PressRepeat(t *testing.T) {
 	}
 	if !strings.Contains(ss.ScreenText, "aaaaa") {
 		t.Errorf("screen should contain 'aaaaa' after 5x press, got:\n%s", ss.ScreenText)
+	}
+}
+
+// TestIntegration_SharedParentSocketPath verifies that the daemon works when
+// the socket lives under a shared directory like /tmp (the parent is not owned
+// or exclusively permissioned by the daemon). This is a regression test to
+// ensure peer-credential auth does not depend on parent directory permissions.
+func TestIntegration_SharedParentSocketPath(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	// Place the socket directly inside /tmp (a shared, world-writable dir).
+	dir, err := os.MkdirTemp("/tmp", "virtui-shared-")
+	if err != nil {
+		t.Fatalf("mktemp: %v", err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
+	// Ensure the parent is world-readable, simulating /tmp or similar.
+	if err := os.Chmod(dir, 0o777); err != nil {
+		t.Fatalf("chmod: %v", err)
+	}
+	socketPath := filepath.Join(dir, "t.sock")
+
+	srv := daemon.NewServer(socketPath)
+	go func() {
+		_ = srv.Start()
+	}()
+	defer srv.Stop()
+
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if _, err := os.Stat(socketPath); err == nil {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	conn, err := grpc.NewClient("unix://"+socketPath,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
+			return net.DialTimeout("unix", socketPath, 5*time.Second)
+		}),
+	)
+	if err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+
+	client := virtuipb.NewVirtuiServiceClient(conn)
+	ctx := context.Background()
+
+	// Same-user connection should succeed.
+	_, err = client.Sessions(ctx, &virtuipb.SessionsRequest{})
+	if err != nil {
+		t.Fatalf("Sessions RPC failed: %v", err)
+	}
+}
+
+// TestIntegration_PeerAuth_RejectsDifferentUID verifies that the daemon rejects
+// connections from a different UID. It builds a static Linux virtui binary,
+// starts the daemon on the host, then runs the binary inside a Docker container
+// as UID 65534 (nobody). The authListener should close the connection before
+// gRPC processes the request.
+func TestIntegration_PeerAuth_RejectsDifferentUID(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	if runtime.GOOS != "linux" {
+		t.Skip("skipping: Docker socket mount + peer credentials requires Linux host")
+	}
+	// Skip if Docker is not available.
+	if _, err := exec.LookPath("docker"); err != nil {
+		t.Skip("skipping: docker not found in PATH")
+	}
+	if out, err := exec.Command("docker", "info").CombinedOutput(); err != nil {
+		t.Skipf("skipping: docker daemon not reachable: %v\n%s", err, out)
+	}
+
+	// Build a static Linux binary.
+	binDir := t.TempDir()
+	binPath := filepath.Join(binDir, "virtui")
+	build := exec.Command("go", "build", "-o", binPath, "./cmd/virtui")
+	build.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS=linux")
+	if out, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("build: %v\n%s", err, out)
+	}
+
+	// Start the daemon with a socket in /tmp.
+	sockDir, err := os.MkdirTemp("/tmp", "virtui-peerauth-")
+	if err != nil {
+		t.Fatalf("mktemp: %v", err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(sockDir) })
+	// Make the socket directory world-accessible so the container user
+	// (UID 65534) can traverse into it and reach the socket. This ensures
+	// that a non-zero exit is caused by authListener rejecting the peer
+	// UID, not by filesystem permission errors on the mount.
+	if err := os.Chmod(sockDir, 0o755); err != nil {
+		t.Fatalf("chmod sockDir: %v", err)
+	}
+	socketPath := filepath.Join(sockDir, "t.sock")
+
+	srv := daemon.NewServer(socketPath)
+	go func() { _ = srv.Start() }()
+	defer srv.Stop()
+
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if _, err := os.Stat(socketPath); err == nil {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	// Make the socket file itself world-accessible so the only barrier
+	// is the authListener peer-credential check, not file permissions.
+	if err := os.Chmod(socketPath, 0o777); err != nil {
+		t.Fatalf("chmod socket: %v", err)
+	}
+
+	ctx := context.Background()
+
+	// Run virtui as UID 65534 (nobody) inside a container.
+	ctr, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: testcontainers.ContainerRequest{
+			Image: "alpine:latest",
+			Cmd:   []string{"/mnt/virtui", "--json", "--socket", "/sock/t.sock", "sessions"},
+			HostConfigModifier: func(hc *dockercontainer.HostConfig) {
+				hc.Mounts = []mount.Mount{
+					{Type: mount.TypeBind, Source: binPath, Target: "/mnt/virtui", ReadOnly: true},
+					{Type: mount.TypeBind, Source: sockDir, Target: "/sock"},
+				}
+			},
+			User:       "65534",
+			WaitingFor: wait.ForExit(),
+		},
+		Started: true,
+	})
+	if err != nil {
+		t.Fatalf("start container: %v", err)
+	}
+	defer func() {
+		_ = ctr.Terminate(ctx)
+	}()
+
+	// The container should have exited with a non-zero code because the
+	// authListener rejected the connection (different UID).
+	state, err := ctr.State(ctx)
+	if err != nil {
+		t.Fatalf("container state: %v", err)
+	}
+	if state.ExitCode == 0 {
+		logs, _ := ctr.Logs(ctx)
+		if logs != nil {
+			buf := make([]byte, 4096)
+			n, _ := logs.Read(buf)
+			t.Fatalf("expected non-zero exit code, got 0; logs:\n%s", buf[:n])
+		}
+		t.Fatal("expected non-zero exit code, got 0")
 	}
 }
 
