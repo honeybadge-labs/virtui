@@ -800,6 +800,13 @@ func TestIntegration_PeerAuth_RejectsDifferentUID(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		t.Skip("skipping: Docker socket mount + peer credentials requires Linux host")
 	}
+	// Skip if Docker is not available.
+	if _, err := exec.LookPath("docker"); err != nil {
+		t.Skip("skipping: docker not found in PATH")
+	}
+	if out, err := exec.Command("docker", "info").CombinedOutput(); err != nil {
+		t.Skipf("skipping: docker daemon not reachable: %v\n%s", err, out)
+	}
 
 	// Build a static Linux binary.
 	binDir := t.TempDir()
@@ -816,6 +823,13 @@ func TestIntegration_PeerAuth_RejectsDifferentUID(t *testing.T) {
 		t.Fatalf("mktemp: %v", err)
 	}
 	t.Cleanup(func() { _ = os.RemoveAll(sockDir) })
+	// Make the socket directory world-accessible so the container user
+	// (UID 65534) can traverse into it and reach the socket. This ensures
+	// that a non-zero exit is caused by authListener rejecting the peer
+	// UID, not by filesystem permission errors on the mount.
+	if err := os.Chmod(sockDir, 0o755); err != nil {
+		t.Fatalf("chmod sockDir: %v", err)
+	}
 	socketPath := filepath.Join(sockDir, "t.sock")
 
 	srv := daemon.NewServer(socketPath)
@@ -829,11 +843,16 @@ func TestIntegration_PeerAuth_RejectsDifferentUID(t *testing.T) {
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
+	// Make the socket file itself world-accessible so the only barrier
+	// is the authListener peer-credential check, not file permissions.
+	if err := os.Chmod(socketPath, 0o777); err != nil {
+		t.Fatalf("chmod socket: %v", err)
+	}
 
 	ctx := context.Background()
 
 	// Run virtui as UID 65534 (nobody) inside a container.
-	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+	ctr, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
 			Image: "alpine:latest",
 			Cmd:   []string{"/mnt/virtui", "--json", "--socket", "/sock/t.sock", "sessions"},
@@ -852,17 +871,17 @@ func TestIntegration_PeerAuth_RejectsDifferentUID(t *testing.T) {
 		t.Fatalf("start container: %v", err)
 	}
 	defer func() {
-		_ = container.Terminate(ctx)
+		_ = ctr.Terminate(ctx)
 	}()
 
 	// The container should have exited with a non-zero code because the
 	// authListener rejected the connection (different UID).
-	state, err := container.State(ctx)
+	state, err := ctr.State(ctx)
 	if err != nil {
 		t.Fatalf("container state: %v", err)
 	}
 	if state.ExitCode == 0 {
-		logs, _ := container.Logs(ctx)
+		logs, _ := ctr.Logs(ctx)
 		if logs != nil {
 			buf := make([]byte, 4096)
 			n, _ := logs.Read(buf)
