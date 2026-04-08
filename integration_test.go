@@ -626,11 +626,9 @@ func TestIntegration_Pipeline(t *testing.T) {
 	}
 
 	// The screenshot step (index 2) should have captured pipeline-step-1
-	ssResult := resp.Results[2].GetScreenshot()
-	if ssResult == nil {
+	if ssResult := resp.Results[2].GetScreenshot(); ssResult == nil {
 		t.Fatal("expected screenshot result at step 2")
-	}
-	if !strings.Contains(ssResult.ScreenText, "pipeline-step-1") {
+	} else if !strings.Contains(ssResult.ScreenText, "pipeline-step-1") {
 		t.Errorf("screenshot should contain 'pipeline-step-1', got:\n%s", ssResult.ScreenText)
 	}
 }
@@ -693,11 +691,9 @@ func TestIntegration_PipelineSkillExample(t *testing.T) {
 	}
 
 	// The screenshot at step 3 should contain our echoed text.
-	ssResult := resp.Results[3].GetScreenshot()
-	if ssResult == nil {
+	if ssResult := resp.Results[3].GetScreenshot(); ssResult == nil {
 		t.Fatal("expected screenshot result at step 3")
-	}
-	if !strings.Contains(ssResult.ScreenText, "hello world") {
+	} else if !strings.Contains(ssResult.ScreenText, "hello world") {
 		t.Errorf("screenshot should contain 'hello world', got:\n%s", ssResult.ScreenText)
 	}
 }
