@@ -139,10 +139,15 @@ func (s *WaitStep) Execute(ctx context.Context, sess *session.Session) (*Result,
 }
 
 // ScreenshotStep captures the screen.
-type ScreenshotStep struct{}
+type ScreenshotStep struct {
+	NoColor bool
+}
 
 func (s *ScreenshotStep) Execute(_ context.Context, sess *session.Session) (*Result, error) {
 	screen := sess.Terminal.Screen()
+	if s.NoColor {
+		screen.ANSI = ""
+	}
 	return &Result{
 		Success: true,
 		Screen:  &screen,

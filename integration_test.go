@@ -1300,3 +1300,44 @@ func TestIntegration_PipelineScreenshotANSI(t *testing.T) {
 		t.Errorf("pipeline screenshot screen_ansi should contain 'PIPE_RED', got:\n%s", ssResult.ScreenAnsi)
 	}
 }
+
+func TestIntegration_PipelineScreenshotNoColor(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	client, cleanup := startTestDaemon(t)
+	defer cleanup()
+	ctx := context.Background()
+	sid := runBash(t, ctx, client)
+
+	resp, err := client.Pipeline(ctx, &virtuipb.PipelineRequest{
+		SessionId:   sid,
+		StopOnError: true,
+		Steps: []*virtuipb.PipelineStep{
+			{Step: &virtuipb.PipelineStep_Exec{Exec: &virtuipb.ExecRequest{
+				Input:     `echo -e "\033[31mPIPE_NOCOLOR\033[0m"`,
+				Wait:      &virtuipb.WaitCondition{Condition: &virtuipb.WaitCondition_Text{Text: "PIPE_NOCOLOR"}},
+				TimeoutMs: 10000,
+			}}},
+			{Step: &virtuipb.PipelineStep_Screenshot{Screenshot: &virtuipb.ScreenshotRequest{
+				NoColor: true,
+			}}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Pipeline: %v", err)
+	}
+	if len(resp.Results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(resp.Results))
+	}
+	ssResult := resp.Results[1].GetScreenshot()
+	if ssResult == nil {
+		t.Fatal("expected screenshot result at step 1")
+	}
+	if ssResult.ScreenAnsi != "" {
+		t.Errorf("pipeline screenshot with no_color=true should have empty screen_ansi, got:\n%s", ssResult.ScreenAnsi)
+	}
+	if !strings.Contains(ssResult.ScreenText, "PIPE_NOCOLOR") {
+		t.Errorf("screen_text should still contain 'PIPE_NOCOLOR', got:\n%s", ssResult.ScreenText)
+	}
+}

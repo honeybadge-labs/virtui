@@ -183,32 +183,50 @@ func (e *Emulator) Screen() Screen {
 	var textBuf strings.Builder
 	var ansiBuf strings.Builder
 
-	// Track current SGR state for delta encoding.
-	var curFG, curBG vt10x.Color
-	var curMode int16
-	sgrActive := false // whether we've emitted any SGR in this row
-
 	for row := range rows {
 		var textLine strings.Builder
-		var ansiLine strings.Builder
 
-		// Reset SGR tracking at the start of each row.
-		curFG = vt10x.DefaultFG
-		curBG = vt10x.DefaultBG
-		curMode = 0
-		sgrActive = false
+		// First pass: find the last column that has a non-space char OR
+		// non-default styling (so styled trailing spaces are preserved in ANSI).
+		lastInteresting := -1
+		for col := cols - 1; col >= 0; col-- {
+			g := e.vt.Cell(col, row)
+			ch := g.Char
+			if ch == 0 {
+				ch = ' '
+			}
+			if ch != ' ' || !isDefaultStyle(g) {
+				lastInteresting = col
+				break
+			}
+		}
 
+		// Build plain text (always trim trailing spaces for text).
 		for col := range cols {
 			g := e.vt.Cell(col, row)
 			ch := g.Char
 			if ch == 0 {
 				ch = ' '
 			}
-
-			// Build plain text.
 			textLine.WriteRune(ch)
+		}
+		textBuf.WriteString(strings.TrimRight(textLine.String(), " "))
 
-			// Build ANSI: emit SGR if style changed.
+		// Build ANSI string up to lastInteresting column (preserving styled spaces).
+		var ansiLine strings.Builder
+		var curFG, curBG vt10x.Color
+		var curMode int16
+		curFG = vt10x.DefaultFG
+		curBG = vt10x.DefaultBG
+		sgrActive := false
+
+		for col := 0; col <= lastInteresting; col++ {
+			g := e.vt.Cell(col, row)
+			ch := g.Char
+			if ch == 0 {
+				ch = ' '
+			}
+
 			if g.FG != curFG || g.BG != curBG || g.Mode != curMode {
 				sgr := buildSGR(g.FG, g.BG, g.Mode)
 				if sgr != "" {
@@ -219,20 +237,14 @@ func (e *Emulator) Screen() Screen {
 				curBG = g.BG
 				curMode = g.Mode
 			}
-
 			ansiLine.WriteRune(ch)
 		}
 
-		textBuf.WriteString(strings.TrimRight(textLine.String(), " "))
-
-		ansiStr := ansiLine.String()
-		// Reset at end of row if any SGR was emitted.
 		if sgrActive {
-			ansiStr = strings.TrimRight(ansiStr, " ")
-			ansiBuf.WriteString(ansiStr)
+			ansiBuf.WriteString(ansiLine.String())
 			ansiBuf.WriteString("\033[0m")
 		} else {
-			ansiBuf.WriteString(strings.TrimRight(ansiStr, " "))
+			ansiBuf.WriteString(ansiLine.String())
 		}
 
 		if row < rows-1 {
@@ -253,47 +265,59 @@ func (e *Emulator) Screen() Screen {
 	}
 }
 
-// buildSGR returns an ANSI SGR escape sequence for the given style.
-// It always emits a full reset + re-apply to keep the logic simple and correct.
-func buildSGR(fg, bg vt10x.Color, mode int16) string {
-	isDefaultFG := fg == vt10x.DefaultFG
-	isDefaultBG := bg == vt10x.DefaultBG
-	hasAttrs := mode&(vtAttrBold|vtAttrItalic|vtAttrUnderline|vtAttrBlink|vtAttrReverse) != 0
+// isDefaultStyle returns true if a glyph has no styling (default FG/BG, no attrs).
+func isDefaultStyle(g vt10x.Glyph) bool {
+	return isDefaultColor(g.FG) && isDefaultColor(g.BG) &&
+		g.Mode&(vtAttrBold|vtAttrItalic|vtAttrUnderline|vtAttrBlink|vtAttrReverse) == 0
+}
 
-	// If everything is default, just reset.
-	if isDefaultFG && isDefaultBG && !hasAttrs {
+// isDefaultColor returns true for vt10x default color sentinels.
+// DefaultFG=1<<24, DefaultBG=1<<24+1, DefaultCursor=1<<24+2.
+func isDefaultColor(c vt10x.Color) bool {
+	return c >= vt10x.DefaultFG
+}
+
+// buildSGR returns an ANSI SGR escape sequence for the given style.
+//
+// vt10x already materializes reverse video by swapping FG/BG in the stored
+// glyph (state.go:setChar), so we must NOT re-emit SGR 7 — the colors in
+// the glyph are already the final display values. Similarly, bold→bright
+// color promotion is pre-applied by vt10x for FG<8.
+//
+// Known limitation: vt10x stores both 256-color palette indices and 24-bit
+// RGB values in the same uint32, so low-valued truecolors (e.g. #000001 =
+// palette index 1) are indistinguishable from palette colors. Such colors
+// will be emitted as palette codes instead of 38;2;R;G;B.
+func buildSGR(fg, bg vt10x.Color, mode int16) string {
+	defFG := isDefaultColor(fg)
+	defBG := isDefaultColor(bg)
+	// Mask out reverse — already materialized by vt10x.
+	attrs := mode & (vtAttrBold | vtAttrItalic | vtAttrUnderline | vtAttrBlink)
+
+	if defFG && defBG && attrs == 0 {
 		return "\033[0m"
 	}
 
 	var params []string
-
-	// Reset first to clear previous state.
 	params = append(params, "0")
 
-	// Attributes.
-	if mode&vtAttrBold != 0 {
+	if attrs&vtAttrBold != 0 {
 		params = append(params, "1")
 	}
-	if mode&vtAttrItalic != 0 {
+	if attrs&vtAttrItalic != 0 {
 		params = append(params, "3")
 	}
-	if mode&vtAttrUnderline != 0 {
+	if attrs&vtAttrUnderline != 0 {
 		params = append(params, "4")
 	}
-	if mode&vtAttrBlink != 0 {
+	if attrs&vtAttrBlink != 0 {
 		params = append(params, "5")
 	}
-	if mode&vtAttrReverse != 0 {
-		params = append(params, "7")
-	}
 
-	// Foreground.
-	if !isDefaultFG {
+	if !defFG {
 		params = append(params, fgSGR(fg)...)
 	}
-
-	// Background.
-	if !isDefaultBG {
+	if !defBG {
 		params = append(params, bgSGR(bg)...)
 	}
 
@@ -311,7 +335,6 @@ func fgSGR(c vt10x.Color) []string {
 	case n < 256:
 		return []string{"38", "5", strconv.Itoa(int(n))}
 	default:
-		// 24-bit RGB: vt10x encodes as r<<16 | g<<8 | b
 		r := (n >> 16) & 0xFF
 		g := (n >> 8) & 0xFF
 		b := n & 0xFF
@@ -330,7 +353,6 @@ func bgSGR(c vt10x.Color) []string {
 	case n < 256:
 		return []string{"48", "5", strconv.Itoa(int(n))}
 	default:
-		// 24-bit RGB: vt10x encodes as r<<16 | g<<8 | b
 		r := (n >> 16) & 0xFF
 		g := (n >> 8) & 0xFF
 		b := n & 0xFF
