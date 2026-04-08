@@ -54,7 +54,11 @@ func outputScreenshot(resp *virtuipb.ScreenshotResponse, jsonMode bool) {
 		outputProtoJSON(resp)
 		return
 	}
-	fmt.Print(resp.ScreenText)
+	if resp.ScreenAnsi != "" {
+		fmt.Print(resp.ScreenAnsi)
+	} else {
+		fmt.Print(resp.ScreenText)
+	}
 	fmt.Println()
 }
 

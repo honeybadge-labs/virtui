@@ -99,6 +99,7 @@ message ExecResponse {
 
 message ScreenshotRequest {
   string session_id = 1;
+  bool no_color = 2;
 }
 
 message ScreenshotResponse {
@@ -108,6 +109,7 @@ message ScreenshotResponse {
   uint32 cursor_col = 4;
   uint32 cols = 5;
   uint32 rows = 6;
+  string screen_ansi = 7;
 }
 
 // --- Press ---

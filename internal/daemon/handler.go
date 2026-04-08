@@ -150,14 +150,18 @@ func (h *Handler) Screenshot(_ context.Context, req *virtuipb.ScreenshotRequest)
 		return nil, err
 	}
 	screen := sess.Terminal.Screen()
-	return &virtuipb.ScreenshotResponse{
+	resp := &virtuipb.ScreenshotResponse{
 		ScreenText: screen.Text,
 		ScreenHash: screen.Hash,
 		CursorRow:  uint32(screen.CursorRow),
 		CursorCol:  uint32(screen.CursorCol),
 		Cols:       uint32(screen.Cols),
 		Rows:       uint32(screen.Rows),
-	}, nil
+	}
+	if !req.NoColor {
+		resp.ScreenAnsi = screen.ANSI
+	}
+	return resp, nil
 }
 
 func (h *Handler) Press(_ context.Context, req *virtuipb.PressRequest) (*virtuipb.PressResponse, error) {
@@ -267,6 +271,7 @@ func (h *Handler) Pipeline(ctx context.Context, req *virtuipb.PipelineRequest) (
 					CursorCol:  uint32(r.Screen.CursorCol),
 					Cols:       uint32(r.Screen.Cols),
 					Rows:       uint32(r.Screen.Rows),
+					ScreenAnsi: r.Screen.ANSI,
 				},
 			}
 		}

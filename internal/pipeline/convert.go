@@ -50,7 +50,9 @@ func convertStep(pb *virtuipb.PipelineStep) (Step, error) {
 			TimeoutMs: s.Wait.TimeoutMs,
 		}, nil
 	case *virtuipb.PipelineStep_Screenshot:
-		return &ScreenshotStep{}, nil
+		return &ScreenshotStep{
+			NoColor: s.Screenshot.GetNoColor(),
+		}, nil
 	case *virtuipb.PipelineStep_Sleep:
 		return &SleepStep{
 			DurationMs: s.Sleep.DurationMs,

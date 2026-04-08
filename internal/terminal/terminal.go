@@ -9,6 +9,7 @@ import (
 // Screen represents a snapshot of the terminal screen.
 type Screen struct {
 	Text      string // Full screen text with newlines
+	ANSI      string // Screen content with ANSI SGR escape codes
 	Hash      string // SHA-256 hex of Text
 	CursorRow int
 	CursorCol int

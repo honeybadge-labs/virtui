@@ -119,10 +119,16 @@ Read the current screen contents at any time:
 
 ```bash
 virtui --json screenshot <session_id>
+virtui screenshot <session_id> --no-color
 ```
 
-Returns `screen_text`, `screen_hash`, cursor position, and terminal dimensions. Use `screen_hash`
-for cheap change detection without comparing full screen text.
+Returns `screen_text`, `screen_hash`, `screen_ansi`, cursor position, and terminal dimensions.
+Use `screen_hash` for cheap change detection without comparing full screen text.
+
+- Use `screen_text` for plain text assertions and screen-diff logic.
+- Use `screen_ansi` when color, background color, bold, underline, or reverse video matter.
+- Use `virtui screenshot --no-color <session_id>` when you want plain text output in non-JSON mode
+  without ANSI escape sequences.
 
 ### 4. Send Keystrokes
 
@@ -233,6 +239,7 @@ outcome **and** a `screenshot` of the screen state at that point:
       "screenshot": {
         "screen_text": "...",
         "screen_hash": "...",
+        "screen_ansi": "...",
         "cursor_row": 4,
         "cursor_col": 10,
         "cols": 80,
@@ -259,9 +266,10 @@ Recording stops when the session is killed or the process exits.
 
 ## Important Patterns
 
-- Always pass `--json` (or `-j`) for machine-readable output with `session_id`, `screen_text`, `screen_hash`, etc.
+- Always pass `--json` (or `-j`) for machine-readable output with `session_id`, `screen_text`, `screen_hash`, `screen_ansi`, etc.
 - JSON output uses proto3 JSON encoding: `int64` fields (`elapsed_ms`, `created_at`) are serialized as strings.
 - Use `screen_hash` (SHA-256) for cheap change detection without comparing full screen text.
+- Prefer `screen_text` for text matching and `screen_ansi` only when TUI state depends on styling or color.
 - The default wait timeout is 30s. For long-running ops, increase it: `--timeout 120000`.
 - If a wait times out, take a `screenshot` to see current state and decide how to proceed.
 - Errors include `code`, `category`, `message`, `retryable`, `suggestion` — check `retryable` before retrying.
@@ -273,7 +281,7 @@ See [references/keys-and-errors.md](references/keys-and-errors.md) for error cod
 |---------|------------|
 | `run` | `session_id`, `pid`, `recording_path` |
 | `exec` | `screen_text`, `screen_hash`, `cursor_row`, `cursor_col`, `elapsed_ms` |
-| `screenshot` | `screen_text`, `screen_hash`, `cursor_row`, `cursor_col`, `cols`, `rows` |
+| `screenshot` | `screen_text`, `screen_hash`, `screen_ansi`, `cursor_row`, `cursor_col`, `cols`, `rows` |
 | `press` | `screen_text`, `screen_hash` |
 | `type` | `screen_text`, `screen_hash` |
 | `wait` | `screen_text`, `screen_hash`, `elapsed_ms` |
