@@ -174,7 +174,7 @@ func TestScreenANSI_TrailingStyledSpacesPreserved(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewEmulator: %v", err)
 	}
-	defer e.Close()
+	defer func() { _ = e.Close() }()
 
 	waitForText(t, e, 2)
 
@@ -204,7 +204,7 @@ func TestScreenANSI_RowOfOnlyStyledSpaces(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewEmulator: %v", err)
 	}
-	defer e.Close()
+	defer func() { _ = e.Close() }()
 
 	waitForText(t, e, 2)
 

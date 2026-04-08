@@ -1292,6 +1292,7 @@ func TestIntegration_PipelineScreenshotANSI(t *testing.T) {
 	ssResult := resp.Results[1].GetScreenshot()
 	if ssResult == nil {
 		t.Fatal("expected screenshot result at step 1")
+		return // unreachable but satisfies staticcheck SA5011
 	}
 	if ssResult.ScreenAnsi == "" {
 		t.Error("pipeline screenshot screen_ansi should be non-empty")
@@ -1333,6 +1334,7 @@ func TestIntegration_PipelineScreenshotNoColor(t *testing.T) {
 	ssResult := resp.Results[1].GetScreenshot()
 	if ssResult == nil {
 		t.Fatal("expected screenshot result at step 1")
+		return // unreachable but satisfies staticcheck SA5011
 	}
 	if ssResult.ScreenAnsi != "" {
 		t.Errorf("pipeline screenshot with no_color=true should have empty screen_ansi, got:\n%s", ssResult.ScreenAnsi)
