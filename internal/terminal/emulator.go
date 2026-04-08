@@ -6,12 +6,23 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 
 	"github.com/creack/pty/v2"
 	"github.com/hinshun/vt10x"
+)
+
+// vt10x attribute flags (unexported in the library).
+const (
+	vtAttrReverse   = 1 << 0 // 1
+	vtAttrUnderline = 1 << 1 // 2
+	vtAttrBold      = 1 << 2 // 4
+	_               = 1 << 3 // 8 (gfx, unused for SGR)
+	vtAttrItalic    = 1 << 4 // 16
+	vtAttrBlink     = 1 << 5 // 32
 )
 
 // Emulator implements Terminal using creack/pty + vt10x.
@@ -169,32 +180,161 @@ func (e *Emulator) Screen() Screen {
 	cols, rows := e.vt.Size()
 	cursor := e.vt.Cursor()
 
-	var sb strings.Builder
+	var textBuf strings.Builder
+	var ansiBuf strings.Builder
+
+	// Track current SGR state for delta encoding.
+	var curFG, curBG vt10x.Color
+	var curMode int16
+	sgrActive := false // whether we've emitted any SGR in this row
+
 	for row := range rows {
-		var line strings.Builder
+		var textLine strings.Builder
+		var ansiLine strings.Builder
+
+		// Reset SGR tracking at the start of each row.
+		curFG = vt10x.DefaultFG
+		curBG = vt10x.DefaultBG
+		curMode = 0
+		sgrActive = false
+
 		for col := range cols {
 			g := e.vt.Cell(col, row)
 			ch := g.Char
 			if ch == 0 {
-				line.WriteRune(' ')
-			} else {
-				line.WriteRune(ch)
+				ch = ' '
 			}
+
+			// Build plain text.
+			textLine.WriteRune(ch)
+
+			// Build ANSI: emit SGR if style changed.
+			if g.FG != curFG || g.BG != curBG || g.Mode != curMode {
+				sgr := buildSGR(g.FG, g.BG, g.Mode)
+				if sgr != "" {
+					ansiLine.WriteString(sgr)
+					sgrActive = true
+				}
+				curFG = g.FG
+				curBG = g.BG
+				curMode = g.Mode
+			}
+
+			ansiLine.WriteRune(ch)
 		}
-		sb.WriteString(strings.TrimRight(line.String(), " "))
+
+		textBuf.WriteString(strings.TrimRight(textLine.String(), " "))
+
+		ansiStr := ansiLine.String()
+		// Reset at end of row if any SGR was emitted.
+		if sgrActive {
+			ansiStr = strings.TrimRight(ansiStr, " ")
+			ansiBuf.WriteString(ansiStr)
+			ansiBuf.WriteString("\033[0m")
+		} else {
+			ansiBuf.WriteString(strings.TrimRight(ansiStr, " "))
+		}
+
 		if row < rows-1 {
-			sb.WriteRune('\n')
+			textBuf.WriteRune('\n')
+			ansiBuf.WriteRune('\n')
 		}
 	}
 
-	text := sb.String()
+	text := textBuf.String()
 	return Screen{
 		Text:      text,
+		ANSI:      ansiBuf.String(),
 		Hash:      ComputeHash(text),
 		CursorRow: cursor.Y,
 		CursorCol: cursor.X,
 		Cols:      cols,
 		Rows:      rows,
+	}
+}
+
+// buildSGR returns an ANSI SGR escape sequence for the given style.
+// It always emits a full reset + re-apply to keep the logic simple and correct.
+func buildSGR(fg, bg vt10x.Color, mode int16) string {
+	isDefaultFG := fg == vt10x.DefaultFG
+	isDefaultBG := bg == vt10x.DefaultBG
+	hasAttrs := mode&(vtAttrBold|vtAttrItalic|vtAttrUnderline|vtAttrBlink|vtAttrReverse) != 0
+
+	// If everything is default, just reset.
+	if isDefaultFG && isDefaultBG && !hasAttrs {
+		return "\033[0m"
+	}
+
+	var params []string
+
+	// Reset first to clear previous state.
+	params = append(params, "0")
+
+	// Attributes.
+	if mode&vtAttrBold != 0 {
+		params = append(params, "1")
+	}
+	if mode&vtAttrItalic != 0 {
+		params = append(params, "3")
+	}
+	if mode&vtAttrUnderline != 0 {
+		params = append(params, "4")
+	}
+	if mode&vtAttrBlink != 0 {
+		params = append(params, "5")
+	}
+	if mode&vtAttrReverse != 0 {
+		params = append(params, "7")
+	}
+
+	// Foreground.
+	if !isDefaultFG {
+		params = append(params, fgSGR(fg)...)
+	}
+
+	// Background.
+	if !isDefaultBG {
+		params = append(params, bgSGR(bg)...)
+	}
+
+	return "\033[" + strings.Join(params, ";") + "m"
+}
+
+// fgSGR returns SGR parameters for a foreground color.
+func fgSGR(c vt10x.Color) []string {
+	n := uint32(c)
+	switch {
+	case n < 8:
+		return []string{strconv.Itoa(30 + int(n))}
+	case n < 16:
+		return []string{strconv.Itoa(90 + int(n-8))}
+	case n < 256:
+		return []string{"38", "5", strconv.Itoa(int(n))}
+	default:
+		// 24-bit RGB: vt10x encodes as r<<16 | g<<8 | b
+		r := (n >> 16) & 0xFF
+		g := (n >> 8) & 0xFF
+		b := n & 0xFF
+		return []string{"38", "2", strconv.Itoa(int(r)), strconv.Itoa(int(g)), strconv.Itoa(int(b))}
+	}
+}
+
+// bgSGR returns SGR parameters for a background color.
+func bgSGR(c vt10x.Color) []string {
+	n := uint32(c)
+	switch {
+	case n < 8:
+		return []string{strconv.Itoa(40 + int(n))}
+	case n < 16:
+		return []string{strconv.Itoa(100 + int(n-8))}
+	case n < 256:
+		return []string{"48", "5", strconv.Itoa(int(n))}
+	default:
+		// 24-bit RGB: vt10x encodes as r<<16 | g<<8 | b
+		r := (n >> 16) & 0xFF
+		g := (n >> 8) & 0xFF
+		b := n & 0xFF
+		return []string{"48", "2", strconv.Itoa(int(r)), strconv.Itoa(int(g)), strconv.Itoa(int(b))}
 	}
 }
 

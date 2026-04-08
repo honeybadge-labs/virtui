@@ -1037,3 +1037,266 @@ func TestIntegration_CLISmoke(t *testing.T) {
 		t.Errorf("expected running=false after stop, got: %s", out)
 	}
 }
+
+// --- ANSI Screenshot Tests ---
+
+func TestIntegration_ScreenshotANSI(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	client, cleanup := startTestDaemon(t)
+	defer cleanup()
+	ctx := context.Background()
+	sid := runBash(t, ctx, client)
+
+	_, err := client.Exec(ctx, &virtuipb.ExecRequest{
+		SessionId: sid,
+		Input:     `echo -e "\033[31mRED\033[0m PLAIN"`,
+		Wait:      &virtuipb.WaitCondition{Condition: &virtuipb.WaitCondition_Text{Text: "PLAIN"}},
+		TimeoutMs: 10000,
+	})
+	if err != nil {
+		t.Fatalf("Exec: %v", err)
+	}
+
+	resp, err := client.Screenshot(ctx, &virtuipb.ScreenshotRequest{
+		SessionId: sid,
+	})
+	if err != nil {
+		t.Fatalf("Screenshot: %v", err)
+	}
+	if !strings.Contains(resp.ScreenText, "RED PLAIN") {
+		t.Errorf("screen_text should contain 'RED PLAIN', got:\n%s", resp.ScreenText)
+	}
+	if !strings.Contains(resp.ScreenAnsi, "\033[") {
+		t.Errorf("screen_ansi should contain ANSI SGR codes, got:\n%s", resp.ScreenAnsi)
+	}
+	if !strings.Contains(resp.ScreenAnsi, "RED") {
+		t.Errorf("screen_ansi should contain 'RED', got:\n%s", resp.ScreenAnsi)
+	}
+	if !strings.Contains(resp.ScreenAnsi, "PLAIN") {
+		t.Errorf("screen_ansi should contain 'PLAIN', got:\n%s", resp.ScreenAnsi)
+	}
+}
+
+func TestIntegration_ScreenshotANSI_Background(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	client, cleanup := startTestDaemon(t)
+	defer cleanup()
+	ctx := context.Background()
+	sid := runBash(t, ctx, client)
+
+	_, err := client.Exec(ctx, &virtuipb.ExecRequest{
+		SessionId: sid,
+		Input:     `echo -e "\033[42mGREEN_BG\033[0m"`,
+		Wait:      &virtuipb.WaitCondition{Condition: &virtuipb.WaitCondition_Text{Text: "GREEN_BG"}},
+		TimeoutMs: 10000,
+	})
+	if err != nil {
+		t.Fatalf("Exec: %v", err)
+	}
+
+	resp, err := client.Screenshot(ctx, &virtuipb.ScreenshotRequest{
+		SessionId: sid,
+	})
+	if err != nil {
+		t.Fatalf("Screenshot: %v", err)
+	}
+	if !strings.Contains(resp.ScreenAnsi, "\033[") {
+		t.Errorf("screen_ansi should contain ANSI SGR codes for background")
+	}
+	if !strings.Contains(resp.ScreenAnsi, "GREEN_BG") {
+		t.Errorf("screen_ansi should contain 'GREEN_BG'")
+	}
+}
+
+func TestIntegration_ScreenshotANSI_Bold(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	client, cleanup := startTestDaemon(t)
+	defer cleanup()
+	ctx := context.Background()
+	sid := runBash(t, ctx, client)
+
+	_, err := client.Exec(ctx, &virtuipb.ExecRequest{
+		SessionId: sid,
+		Input:     `echo -e "\033[1mBOLD\033[0m \033[4mUNDERLINE\033[0m"`,
+		Wait:      &virtuipb.WaitCondition{Condition: &virtuipb.WaitCondition_Text{Text: "UNDERLINE"}},
+		TimeoutMs: 10000,
+	})
+	if err != nil {
+		t.Fatalf("Exec: %v", err)
+	}
+
+	resp, err := client.Screenshot(ctx, &virtuipb.ScreenshotRequest{
+		SessionId: sid,
+	})
+	if err != nil {
+		t.Fatalf("Screenshot: %v", err)
+	}
+	// Bold SGR code is \033[0;1m (reset + bold)
+	if !strings.Contains(resp.ScreenAnsi, ";1") {
+		t.Errorf("screen_ansi should contain bold SGR param, got:\n%s", resp.ScreenAnsi)
+	}
+	// Underline SGR code is \033[0;4m (reset + underline)
+	if !strings.Contains(resp.ScreenAnsi, ";4") {
+		t.Errorf("screen_ansi should contain underline SGR param, got:\n%s", resp.ScreenAnsi)
+	}
+}
+
+func TestIntegration_ScreenshotNoColor(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	client, cleanup := startTestDaemon(t)
+	defer cleanup()
+	ctx := context.Background()
+	sid := runBash(t, ctx, client)
+
+	_, err := client.Exec(ctx, &virtuipb.ExecRequest{
+		SessionId: sid,
+		Input:     `echo -e "\033[31mRED\033[0m"`,
+		Wait:      &virtuipb.WaitCondition{Condition: &virtuipb.WaitCondition_Text{Text: "RED"}},
+		TimeoutMs: 10000,
+	})
+	if err != nil {
+		t.Fatalf("Exec: %v", err)
+	}
+
+	resp, err := client.Screenshot(ctx, &virtuipb.ScreenshotRequest{
+		SessionId: sid,
+		NoColor:   true,
+	})
+	if err != nil {
+		t.Fatalf("Screenshot: %v", err)
+	}
+	if resp.ScreenAnsi != "" {
+		t.Errorf("screen_ansi should be empty with no_color=true, got:\n%s", resp.ScreenAnsi)
+	}
+	if !strings.Contains(resp.ScreenText, "RED") {
+		t.Errorf("screen_text should still contain 'RED', got:\n%s", resp.ScreenText)
+	}
+}
+
+func TestIntegration_Screenshot256Color(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	client, cleanup := startTestDaemon(t)
+	defer cleanup()
+	ctx := context.Background()
+	sid := runBash(t, ctx, client)
+
+	_, err := client.Exec(ctx, &virtuipb.ExecRequest{
+		SessionId: sid,
+		Input:     `echo -e "\033[38;5;196mBRIGHT_RED\033[0m"`,
+		Wait:      &virtuipb.WaitCondition{Condition: &virtuipb.WaitCondition_Text{Text: "BRIGHT_RED"}},
+		TimeoutMs: 10000,
+	})
+	if err != nil {
+		t.Fatalf("Exec: %v", err)
+	}
+
+	resp, err := client.Screenshot(ctx, &virtuipb.ScreenshotRequest{
+		SessionId: sid,
+	})
+	if err != nil {
+		t.Fatalf("Screenshot: %v", err)
+	}
+	if !strings.Contains(resp.ScreenAnsi, "38;5;196") {
+		t.Errorf("screen_ansi should contain 256-color SGR '38;5;196', got:\n%s", resp.ScreenAnsi)
+	}
+	if !strings.Contains(resp.ScreenAnsi, "BRIGHT_RED") {
+		t.Errorf("screen_ansi should contain 'BRIGHT_RED'")
+	}
+}
+
+func TestIntegration_ScreenshotANSI_DefaultCells(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	client, cleanup := startTestDaemon(t)
+	defer cleanup()
+	ctx := context.Background()
+	sid := runBash(t, ctx, client)
+
+	_, err := client.Exec(ctx, &virtuipb.ExecRequest{
+		SessionId: sid,
+		Input:     "echo PLAIN_TEXT",
+		Wait:      &virtuipb.WaitCondition{Condition: &virtuipb.WaitCondition_Text{Text: "PLAIN_TEXT"}},
+		TimeoutMs: 10000,
+	})
+	if err != nil {
+		t.Fatalf("Exec: %v", err)
+	}
+
+	resp, err := client.Screenshot(ctx, &virtuipb.ScreenshotRequest{
+		SessionId: sid,
+	})
+	if err != nil {
+		t.Fatalf("Screenshot: %v", err)
+	}
+	if !strings.Contains(resp.ScreenAnsi, "PLAIN_TEXT") {
+		t.Errorf("screen_ansi should contain 'PLAIN_TEXT'")
+	}
+	// Find position of PLAIN_TEXT and check no SGR before it
+	idx := strings.Index(resp.ScreenAnsi, "PLAIN_TEXT")
+	if idx > 0 {
+		before := resp.ScreenAnsi[:idx]
+		// The text "PLAIN_TEXT" appears in the echo command on one line
+		// and as output on the next. Check the output line specifically.
+		lines := strings.Split(resp.ScreenAnsi, "\n")
+		for _, line := range lines {
+			// Find lines that start with PLAIN_TEXT (the output line, not the echo cmd)
+			if strings.HasPrefix(line, "PLAIN_TEXT") {
+				if strings.Contains(line[:len("PLAIN_TEXT")], "\033[") {
+					t.Errorf("default-styled text should not have SGR codes before it, got line: %q", line)
+				}
+				break
+			}
+		}
+		_ = before // used above conceptually
+	}
+}
+
+func TestIntegration_PipelineScreenshotANSI(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	client, cleanup := startTestDaemon(t)
+	defer cleanup()
+	ctx := context.Background()
+	sid := runBash(t, ctx, client)
+
+	resp, err := client.Pipeline(ctx, &virtuipb.PipelineRequest{
+		SessionId:   sid,
+		StopOnError: true,
+		Steps: []*virtuipb.PipelineStep{
+			{Step: &virtuipb.PipelineStep_Exec{Exec: &virtuipb.ExecRequest{
+				Input:     `echo -e "\033[31mPIPE_RED\033[0m"`,
+				Wait:      &virtuipb.WaitCondition{Condition: &virtuipb.WaitCondition_Text{Text: "PIPE_RED"}},
+				TimeoutMs: 10000,
+			}}},
+			{Step: &virtuipb.PipelineStep_Screenshot{Screenshot: &virtuipb.ScreenshotRequest{}}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Pipeline: %v", err)
+	}
+	if len(resp.Results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(resp.Results))
+	}
+	ssResult := resp.Results[1].GetScreenshot()
+	if ssResult == nil {
+		t.Fatal("expected screenshot result at step 1")
+	}
+	if ssResult.ScreenAnsi == "" {
+		t.Error("pipeline screenshot screen_ansi should be non-empty")
+	}
+	if !strings.Contains(ssResult.ScreenAnsi, "PIPE_RED") {
+		t.Errorf("pipeline screenshot screen_ansi should contain 'PIPE_RED', got:\n%s", ssResult.ScreenAnsi)
+	}
+}

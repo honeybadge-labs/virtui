@@ -68,6 +68,7 @@ type ExecCmd struct {
 
 type ScreenshotCmd struct {
 	Session string `arg:"" help:"Session ID."`
+	NoColor bool   `help:"Omit ANSI color codes from output." name:"no-color"`
 }
 
 type PressCmd struct {
@@ -228,6 +229,7 @@ func (cmd *ScreenshotCmd) Run(cli *CLI) error {
 	defer c.Close()
 	resp, err := c.Screenshot(context.Background(), &virtuipb.ScreenshotRequest{
 		SessionId: cmd.Session,
+		NoColor:   cmd.NoColor,
 	})
 	if err != nil {
 		return err

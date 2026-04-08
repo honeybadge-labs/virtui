@@ -807,6 +807,7 @@ func (x *ExecResponse) GetElapsedMs() int64 {
 type ScreenshotRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	NoColor       bool                   `protobuf:"varint,2,opt,name=no_color,json=noColor,proto3" json:"no_color,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -848,6 +849,13 @@ func (x *ScreenshotRequest) GetSessionId() string {
 	return ""
 }
 
+func (x *ScreenshotRequest) GetNoColor() bool {
+	if x != nil {
+		return x.NoColor
+	}
+	return false
+}
+
 type ScreenshotResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ScreenText    string                 `protobuf:"bytes,1,opt,name=screen_text,json=screenText,proto3" json:"screen_text,omitempty"`
@@ -856,6 +864,7 @@ type ScreenshotResponse struct {
 	CursorCol     uint32                 `protobuf:"varint,4,opt,name=cursor_col,json=cursorCol,proto3" json:"cursor_col,omitempty"`
 	Cols          uint32                 `protobuf:"varint,5,opt,name=cols,proto3" json:"cols,omitempty"`
 	Rows          uint32                 `protobuf:"varint,6,opt,name=rows,proto3" json:"rows,omitempty"`
+	ScreenAnsi    string                 `protobuf:"bytes,7,opt,name=screen_ansi,json=screenAnsi,proto3" json:"screen_ansi,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -930,6 +939,13 @@ func (x *ScreenshotResponse) GetRows() uint32 {
 		return x.Rows
 	}
 	return 0
+}
+
+func (x *ScreenshotResponse) GetScreenAnsi() string {
+	if x != nil {
+		return x.ScreenAnsi
+	}
+	return ""
 }
 
 type PressRequest struct {
@@ -2163,10 +2179,11 @@ const file_proto_virtui_v1_virtui_proto_rawDesc = "" +
 	"\n" +
 	"cursor_col\x18\x04 \x01(\rR\tcursorCol\x12\x1d\n" +
 	"\n" +
-	"elapsed_ms\x18\x05 \x01(\x03R\telapsedMs\"2\n" +
+	"elapsed_ms\x18\x05 \x01(\x03R\telapsedMs\"M\n" +
 	"\x11ScreenshotRequest\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\"\xbc\x01\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x19\n" +
+	"\bno_color\x18\x02 \x01(\bR\anoColor\"\xdd\x01\n" +
 	"\x12ScreenshotResponse\x12\x1f\n" +
 	"\vscreen_text\x18\x01 \x01(\tR\n" +
 	"screenText\x12\x1f\n" +
@@ -2177,7 +2194,9 @@ const file_proto_virtui_v1_virtui_proto_rawDesc = "" +
 	"\n" +
 	"cursor_col\x18\x04 \x01(\rR\tcursorCol\x12\x12\n" +
 	"\x04cols\x18\x05 \x01(\rR\x04cols\x12\x12\n" +
-	"\x04rows\x18\x06 \x01(\rR\x04rows\"Y\n" +
+	"\x04rows\x18\x06 \x01(\rR\x04rows\x12\x1f\n" +
+	"\vscreen_ansi\x18\a \x01(\tR\n" +
+	"screenAnsi\"Y\n" +
 	"\fPressRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x12\n" +
