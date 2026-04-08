@@ -169,6 +169,16 @@ func waitCondition(ctx context.Context, sess *session.Session, opts *WaitOpts, t
 	updates, cancel := sess.Terminal.Subscribe()
 	defer cancel()
 
+	// Pre-compile regex once outside the hot loop.
+	var re *regexp.Regexp
+	if opts.Regex != "" {
+		var err error
+		re, err = regexp.Compile(opts.Regex)
+		if err != nil {
+			return fmt.Errorf("invalid regex %q: %w", opts.Regex, err)
+		}
+	}
+
 	check := func() bool {
 		screen := sess.Terminal.Screen()
 		if opts.Text != "" {
@@ -177,11 +187,7 @@ func waitCondition(ctx context.Context, sess *session.Session, opts *WaitOpts, t
 		if opts.Gone != "" {
 			return !strings.Contains(screen.Text, opts.Gone)
 		}
-		if opts.Regex != "" {
-			re, err := regexp.Compile(opts.Regex)
-			if err != nil {
-				return false
-			}
+		if re != nil {
 			return re.MatchString(screen.Text)
 		}
 		return false
